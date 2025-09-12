@@ -621,17 +621,59 @@ class MarketDataFetcher:
             raise MarketDataError("E005", "OpenAI client is not available.")
         try:
             logger.info(f"Calling OpenAI API (json_mode={json_mode}, max_tokens={max_tokens})...")
-            messages = [{"role": "user", "content": prompt}]
-            response_format = {"type": "json_object"} if json_mode else {"type": "text"}
 
-            response = self.openai_client.chat.completions.create(
-                model="gpt-5-mini",
-                messages=messages,
-                max_completion_tokens=max_tokens,
-                response_format=response_format
-            )
-            content = response.choices[0].message.content.strip()
-            return json.loads(content) if json_mode else content
+            messages = []
+            if json_mode:
+                messages.append({
+                    "role": "system",
+                    "content": "You are a helpful assistant designed to output JSON. Your response must be valid JSON."
+                })
+
+            messages.append({"role": "user", "content": prompt})
+
+            kwargs = {
+                "model": "gpt-5-mini",
+                "messages": messages,
+                "max_completion_tokens": max_tokens,
+            }
+
+            if json_mode:
+                kwargs["response_format"] = {"type": "json_object"}
+
+            response = self.openai_client.chat.completions.create(**kwargs)
+
+            logger.debug(f"Response object type: {type(response)}")
+            if hasattr(response, 'model'): logger.debug(f"Response model: {response.model}")
+            if hasattr(response, 'usage'): logger.debug(f"Response usage: {response.usage}")
+
+            if not response or not response.choices:
+                logger.error("Empty response from OpenAI API")
+                raise MarketDataError("E005", "Empty response from OpenAI API")
+
+            if response.choices[0].finish_reason == 'length':
+                logger.warning("Response may be truncated due to max_tokens limit.")
+
+            content = response.choices[0].message.content
+
+            if not content:
+                logger.error("Empty content in OpenAI API response")
+                raise MarketDataError("E005", "Empty content in OpenAI API response")
+
+            content = content.strip()
+            logger.debug(f"Received response (first 200 chars): {content[:200]}")
+
+            if json_mode:
+                try:
+                    return json.loads(content)
+                except json.JSONDecodeError as je:
+                    logger.error(f"Failed to parse JSON response: {content[:500]}")
+                    raise MarketDataError("E005", f"Invalid JSON response: {je}") from je
+            else:
+                return content
+
+        except openai.APIError as api_error:
+            logger.error(f"OpenAI API error: {api_error}")
+            raise MarketDataError("E005", f"API error: {api_error}") from api_error
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {e}")
             raise MarketDataError("E005", str(e)) from e
@@ -643,7 +685,18 @@ class MarketDataFetcher:
         fear_greed_data = self.data.get('market', {}).get('fear_and_greed', {})
         fear_greed_value = fear_greed_data.get('now', 'N/A')
         fear_greed_category = fear_greed_data.get('category', 'N/A')
-        prompt = f"以下の市場データを基に、日本の個人投資家向けに本日の米国市場の状況を150字程度で簡潔に解説してください。\n- VIX指数: {vix}\n- 米国10年債先物: {t_note}\n- Fear & Greed Index: {fear_greed_value} ({fear_greed_category})\n\n以下のJSON形式で出力してください:\n{{\"response\": \"ここに解説を記述\"}}"
+
+        prompt = f"""以下の市場データを基に、日本の個人投資家向けに本日の米国市場の状況を150字程度で簡潔に解説してください。
+
+        - VIX指数: {vix}
+        - 米国10年債先物: {t_note}
+        - Fear & Greed Index: {fear_greed_value} ({fear_greed_category})
+
+        必ず以下のJSON形式で出力してください：
+        {{"response": "ここに解説を記述"}}
+
+        重要：出力は有効なJSONである必要があります。"""
+
         try:
             response_json = self._call_openai_api(prompt, json_mode=True, max_tokens=250)
             self.data['market']['ai_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
@@ -664,71 +717,99 @@ class MarketDataFetcher:
             }
             return
 
+        # Limit to top 5 news items to avoid overly long prompts
+        top_news = raw_news[:5]
+
         news_content = ""
-        for i, item in enumerate(raw_news):
-            news_content += f"記事{i+1}: {item['title']}\n概要: {item.get('summary', 'N/A')}\n\n"
+        for i, item in enumerate(top_news):
+            news_content += f"記事{i+1}:\n"
+            news_content += f"  - タイトル: {item['title']}\n"
+            news_content += f"  - 概要: {item.get('summary', 'N/A')}\n"
+            news_content += f"  - URL: {item['link']}\n\n"
 
         prompt = f"""
-        以下の米国市場に関するニュース記事群を分析し、日本の個人投資家向けに要約してください。
+        以下の米国市場に関する最新ニュース記事群を分析し、日本の個人投資家向けに解説してください。
 
-        ニュース記事:
+        # ニュース記事
         ---
         {news_content}
         ---
 
-        上記のニュース全体から、今日の市場のムードが最も伝わるように、事実とその解釈を織り交ぜて「今朝の3行サマリー」を作成してください。
-        さらに、最も重要と思われる「主要トピック」を3つ選び、それぞれ以下の形式で記述してください。
-        - 事実: ニュースで報道された客観的な事実。
-        - 解釈: その事実が市場でどのように受け止められているか、専門家としてのあなたの解釈。
-        - 市場への影響: このトピックが今後の市場（特にS&P 500やNASDAQ）に与えうる短期的な影響。
+        # 指示
+        1.  上記のニュース全体から、今日の市場のムードが最も伝わるように「今朝の3行サマリー」を作成してください。
+        2.  次に、最も重要と思われる「主要トピック」を3つ選んでください。
+        3.  各トピックについて、以下の情報を1つにまとめてください。
+            - そのニュースが市場でどのように受け止められているかの「解釈」。
+            - 今後の市場（特にS&P 500やNASDAQ）に与えうる短期的な「市場への影響」。
+            - 分析の基となった記事の「URL」。
 
-        以下のJSON形式で、厳密に出力してください。
+        # 出力形式
+        以下のJSON形式（外側は二重引用符、内側は一重引用符などJSONのルールを厳守）で、厳密に出力してください。
 
         {{
           "summary": "（ここに3行のサマリーを記述）",
           "topics": [
             {{
-              "title": "（トピック1のタイトル、15文字以内）",
-              "fact": "（事実を記述）",
-              "interpretation": "（解釈を記述）",
-              "impact": "（市場への影響を記述）"
+              "title": "（トピック1のタイトル、20文字以内）",
+              "analysis": "（解釈と市場への影響をここにまとめて記述）",
+              "url": "（基となった記事のURLをここに記述）"
             }},
             {{
-              "title": "（トピック2のタイトル、15文字以内）",
-              "fact": "（事実を記述）",
-              "interpretation": "（解釈を記述）",
-              "impact": "（市場への影響を記述）"
+              "title": "（トピック2のタイトル、20文字以内）",
+              "analysis": "（解釈と市場への影響をここにまとめて記述）",
+              "url": "（基となった記事のURLをここに記述）"
             }},
             {{
-              "title": "（トピック3のタイトル、15文字以内）",
-              "fact": "（事実を記述）",
-              "interpretation": "（解釈を記述）",
-              "impact": "（市場への影響を記述）"
+              "title": "（トピック3のタイトル、20文字以内）",
+              "analysis": "（解釈と市場への影響をここにまとめて記述）",
+              "url": "（基となった記事のURLをここに記述）"
             }}
           ]
         }}
         """
-
-        news_data = self._call_openai_api(prompt, json_mode=True, max_tokens=1024)
-
-        if isinstance(news_data, str) or 'error' in news_data:
+        try:
+            news_data = self._call_openai_api(prompt, json_mode=True, max_tokens=1024)
+            if isinstance(news_data, str) or 'error' in news_data:
+                 raise MarketDataError("E005", f"AI news analysis failed: {news_data}")
+            self.data['news'] = news_data
+        except Exception as e:
+            logger.error(f"Could not generate AI news: {e}")
             self.data['news'] = {
                 "summary": "AIによるニュースの分析に失敗しました。",
                 "topics": [],
-                "error": str(news_data)
+                "error": str(e)
             }
-        else:
-            self.data['news'] = news_data
 
     def generate_column(self):
+        # Monday is 0
         if datetime.now(timezone(timedelta(hours=9))).weekday() != 0:
+            logger.info("Skipping weekly column generation (not Monday).")
             self.data['column'] = {}
             return
+
         logger.info("Generating weekly column...")
         vix = self.data.get('market', {}).get('vix', {}).get('current', 'N/A')
         t_note = self.data.get('market', {}).get('t_note_future', {}).get('current', 'N/A')
         fear_greed = self.data.get('market', {}).get('fear_and_greed', {})
-        prompt = f"今週の米国市場の展望について、日本の個人投資家向けに300字程度のコラムを執筆してください。\n先週の市場を振り返り、今週の注目点を盛り込んでください。\n\n参考データ:\n- VIX指数: {vix}\n- 米国10年債先物: {t_note}\n- Fear & Greed Index: 現在値 {fear_greed.get('now', 'N/A')}, 1週間前 {fear_greed.get('prev_week', 'N/A')}\n- 今週の主な経済指標: {self.data.get('indicators', {}).get('economic', [])[:5]}\n\n以下のJSON形式で出力してください:\n{{\"response\": \"ここにコラムを記述\"}}"
+
+        prompt = f"""
+        今週の米国市場の展望について、日本の個人投資家向けに300字程度のコラムを執筆してください。
+        先週の市場を簡潔に振り返り、今週の注目経済指標やイベントに触れながら、専門家としての洞察を加えてください。
+
+        # 参考データ
+        - VIX指数: {vix}
+        - 米国10年債先物: {t_note}
+        - Fear & Greed Index: 現在値 {fear_greed.get('now', 'N/A')}, 1週間前 {fear_greed.get('prev_week', 'N/A')}
+        - 今週の主な経済指標: {self.data.get('indicators', {}).get('economic', [])[:5]}
+
+        # 出力形式
+        必ず以下のJSON形式で出力してください：
+        {{
+            "response": "ここにコラムを記述"
+        }}
+
+        重要：出力は有効なJSONである必要があります。
+        """
         try:
             response_json = self._call_openai_api(prompt, json_mode=True, max_tokens=500)
             content = response_json.get('response', '週次コラムの生成に失敗しました。')
@@ -742,76 +823,57 @@ class MarketDataFetcher:
         logger.info("Generating heatmap AI commentary...")
 
         def get_sector_performance(stocks):
-            if not stocks:
-                return []
+            if not stocks: return []
             sector_perf = {}
             sector_count = {}
             for stock in stocks:
-                sector = stock.get('sector', 'N/A')
-                perf = stock.get('performance', 0)
+                sector, perf = stock.get('sector', 'N/A'), stock.get('performance', 0)
                 if sector != 'N/A':
                     sector_perf[sector] = sector_perf.get(sector, 0) + perf
                     sector_count[sector] = sector_count.get(sector, 0) + 1
-
-            if not sector_count:
-                return []
-
-            avg_sector_perf = {s: sector_perf[s] / sector_count[s] for s in sector_perf if s in sector_count}
+            if not sector_count: return []
+            avg_sector_perf = {s: sector_perf[s] / sector_count[s] for s in sector_perf}
             return sorted(avg_sector_perf.items(), key=lambda item: item[1], reverse=True)
 
         for index_base_name in ['sp500', 'nasdaq']:
             try:
                 heatmap_1d = self.data.get(f'{index_base_name}_heatmap_1d', {})
-                heatmap_1w = self.data.get(f'{index_base_name}_heatmap_1w', {})
-                heatmap_1m = self.data.get(f'{index_base_name}_heatmap_1m', {})
-
                 if not heatmap_1d.get('stocks'):
                     logger.warning(f"No 1-day data for {index_base_name}, skipping AI commentary.")
+                    self.data[f'{index_base_name}_heatmap']['ai_commentary'] = "データ不足のためヒートマップ解説をスキップしました。"
                     continue
 
                 sorted_sectors_1d = get_sector_performance(heatmap_1d.get('stocks', []))
-                sorted_sectors_1w = get_sector_performance(heatmap_1w.get('stocks', []))
-                sorted_sectors_1m = get_sector_performance(heatmap_1m.get('stocks', []))
-
-                if not sorted_sectors_1d:
-                    logger.warning(f"Could not calculate sector performance for {index_base_name}, skipping.")
-                    continue
+                top_3_1d = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1d[:3]])
+                bottom_3_1d = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1d[-3:]])
 
                 prompt = f"""
-                以下の{index_base_name.upper()}に関する1日、1週間、1ヶ月のセクター別パフォーマンスデータを分析してください。
+                以下の{index_base_name.upper()}のセクター別パフォーマンスデータを分析してください。
 
                 # データ
-                - **1日間パフォーマンス (上位3セクター)**: {', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1d[:3]])}
-                - **1週間パフォーマンス (上位3セクター)**: {', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1w[:3]]) if sorted_sectors_1w else "データなし"}
-                - **1ヶ月間パフォーマンス (上位3セクター)**: {', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1m[:3]]) if sorted_sectors_1m else "データなし"}
-
-                - **1日間パフォーマンス (下位3セクター)**: {', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1d[-3:]])}
-                - **1週間パフォーマンス (下位3セクター)**: {', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1w[-3:]]) if sorted_sectors_1w else "データなし"}
-                - **1ヶ月間パフォーマンス (下位3セクター)**: {', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1m[-3:]]) if sorted_sectors_1m else "データなし"}
+                - **1日間パフォーマンス**
+                  - 上位3セクター: {top_3_1d}
+                  - 下位3セクター: {bottom_3_1d}
 
                 # 指示
-                上記データに基づき、以下の点について簡潔な解説を生成してください。
-                1.  **短期(1日)のトレンド**: 今日の市場で特に強かったセクターと弱かったセクターは何か。
-                2.  **中期(1週間)のトレンド**: この1週間で勢いを増している、または失っているセクターは何か。
-                3.  **長期(1ヶ月)のトレンドとの比較**: 短期・中期のトレンドは、過去1ヶ月の長期的なトレンドを継続しているか、それとも転換点を示しているか。特に注目すべきセクターの動向を指摘してください。
+                上記データに基づき、今日の市場で特に強かったセクターと弱かったセクターについて、その背景を推測しながら150字程度で簡潔に解説してください。
 
-                全体の解説は200字程度にまとめてください。
+                # 出力形式
+                必ず以下のJSON形式で出力してください：
+                {{
+                    "response": "ここに解説を記述"
+                }}
 
-                以下のJSON形式で出力してください:
-                {{\"response\": \"ここに解説を記述\"}}
+                重要：出力は有効なJSONである必要があります。
                 """
-                try:
-                    response_json = self._call_openai_api(prompt, json_mode=True, max_tokens=500)
-                    commentary = response_json.get('response', 'AI解説の生成に失敗しました。')
-                    # Save commentary to the original heatmap key for backward compatibility
-                    self.data[f'{index_base_name}_heatmap']['ai_commentary'] = commentary
-                except Exception as e:
-                     logger.error(f"Failed to generate and parse AI commentary for {index_base_name}: {e}")
-                     self.data[f'{index_base_name}_heatmap']['ai_commentary'] = "AI解説の生成中にエラーが発生しました。"
+
+                response_json = self._call_openai_api(prompt, json_mode=True, max_tokens=500)
+                commentary = response_json.get('response', 'AI解説の生成に失敗しました。')
+                self.data[f'{index_base_name}_heatmap']['ai_commentary'] = commentary
 
             except Exception as e:
-                logger.error(f"Failed to generate AI commentary for {index_base_name}: {e}")
-                self.data[f'{index_base_name}_heatmap']['ai_commentary'] = "AI解説の生成に失敗しました。"
+                logger.error(f"Failed to generate and parse AI commentary for {index_base_name}: {e}")
+                self.data[f'{index_base_name}_heatmap']['ai_commentary'] = "AI解説の生成中にエラーが発生しました。"
 
     def cleanup_old_data(self):
         """Deletes data files older than 7 days."""
