@@ -3,7 +3,7 @@ uvicorn==0.24.0
 yfinance>=0.2.65
 curl-cffi>=0.13.0
 beautifulsoup4==4.12.2
-openai==1.6.1
+openai==1.107.1
 pandas==2.1.4
 Pillow==10.1.0
 platformdirs>=2.0.0
