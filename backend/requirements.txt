@@ -1,0 +1,14 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+yfinance>=0.2.65
+curl-cffi>=0.13.0
+beautifulsoup4==4.12.2
+openai==1.6.1
+pandas==2.1.4
+Pillow==10.1.0
+platformdirs>=2.0.0
+protobuf>=3.19.0
+websockets>=13.0
+python-dotenv==0.21.0
+lxml==6.0.1
+matplotlib==3.8.0

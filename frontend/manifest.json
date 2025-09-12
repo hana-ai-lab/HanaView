@@ -1,0 +1,21 @@
+{
+  "name": "HanaView Market Dashboard",
+  "short_name": "HanaView",
+  "description": "A dashboard to efficiently check US market data.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#E6F3F7",
+  "theme_color": "#006B6B",
+  "icons": [
+    {
+      "src": "./icons/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "./icons/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

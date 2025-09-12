@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    env_file:
+      - ./.env
+    ports:
+      - "3000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TZ=Asia/Tokyo
+    restart: unless-stopped
