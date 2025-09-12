@@ -2,6 +2,9 @@
 FROM python:3.11-slim-bookworm
 WORKDIR /app
 
+# Set the timezone to Japan Standard Time.
+ENV TZ=Asia/Tokyo
+
 # Install system dependencies including Chrome and ChromeDriver.
 RUN apt-get update && apt-get install -y \
     cron curl wget gnupg unzip jq && \
