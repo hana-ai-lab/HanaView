@@ -628,7 +628,6 @@ class MarketDataFetcher:
                 model="gpt-5-mini",
                 messages=messages,
                 max_completion_tokens=max_tokens,
-                temperature=0.7,
                 response_format=response_format
             )
             content = response.choices[0].message.content.strip()
