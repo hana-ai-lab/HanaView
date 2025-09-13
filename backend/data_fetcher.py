@@ -648,7 +648,7 @@ class MarketDataFetcher:
                 raise MarketDataError("E005", "Empty response from OpenAI API")
 
             if response.choices[0].finish_reason == 'length':
-                logger.warning("Response may be truncated due to max_tokens limit.")
+                logger.warning("Response may be truncated due to max_completion_tokens limit.")
 
             content = response.choices[0].message.content
 
