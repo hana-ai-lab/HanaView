@@ -616,29 +616,26 @@ class MarketDataFetcher:
         return heatmaps
 
     # --- AI Generation ---
-    def _call_openai_api(self, prompt, json_mode=False, max_tokens=150):
+    def _call_openai_api(self, prompt, max_completion_tokens=150):
         if not self.openai_client:
             raise MarketDataError("E005", "OpenAI client is not available.")
         try:
-            logger.info(f"Calling OpenAI API (json_mode={json_mode}, max_tokens={max_tokens})...")
+            logger.info(f"Calling OpenAI API (max_tokens={max_completion_tokens})...")
 
-            messages = []
-            if json_mode:
-                messages.append({
+            messages = [
+                {
                     "role": "system",
                     "content": "You are a helpful assistant designed to output JSON. Your response must be valid JSON."
-                })
-
-            messages.append({"role": "user", "content": prompt})
+                },
+                {"role": "user", "content": prompt}
+            ]
 
             kwargs = {
                 "model": "gpt-5-mini",
                 "messages": messages,
-                "max_completion_tokens": max_tokens,
+                "max_completion_tokens": max_completion_tokens,
+                "response_format": {"type": "json_object"}
             }
-
-            if json_mode:
-                kwargs["response_format"] = {"type": "json_object"}
 
             response = self.openai_client.chat.completions.create(**kwargs)
 
@@ -662,14 +659,11 @@ class MarketDataFetcher:
             content = content.strip()
             logger.debug(f"Received response (first 200 chars): {content[:200]}")
 
-            if json_mode:
-                try:
-                    return json.loads(content)
-                except json.JSONDecodeError as je:
-                    logger.error(f"Failed to parse JSON response: {content[:500]}")
-                    raise MarketDataError("E005", f"Invalid JSON response: {je}") from je
-            else:
-                return content
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError as je:
+                logger.error(f"Failed to parse JSON response: {content[:500]}")
+                raise MarketDataError("E005", f"Invalid JSON response: {je}") from je
 
         except openai.APIError as api_error:
             logger.error(f"OpenAI API error: {api_error}")
@@ -698,7 +692,7 @@ class MarketDataFetcher:
         重要：出力は有効なJSONである必要があります。"""
 
         try:
-            response_json = self._call_openai_api(prompt, json_mode=True, max_tokens=250)
+            response_json = self._call_openai_api(prompt, max_completion_tokens=250)
             self.data['market']['ai_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
         except Exception as e:
             logger.error(f"Failed to generate and parse AI commentary: {e}")
@@ -768,7 +762,7 @@ class MarketDataFetcher:
         }}
         """
         try:
-            news_data = self._call_openai_api(prompt, json_mode=True, max_tokens=1024)
+            news_data = self._call_openai_api(prompt, max_completion_tokens=1024)
             if isinstance(news_data, str) or 'error' in news_data:
                  raise MarketDataError("E005", f"AI news analysis failed: {news_data}")
             self.data['news'] = news_data
@@ -811,7 +805,7 @@ class MarketDataFetcher:
         重要：出力は有効なJSONである必要があります。
         """
         try:
-            response_json = self._call_openai_api(prompt, json_mode=True, max_tokens=500)
+            response_json = self._call_openai_api(prompt, max_completion_tokens=500)
             content = response_json.get('response', '週次コラムの生成に失敗しました。')
             self.data['column'] = {"weekly_report": {"title": "今週の注目ポイント (AIコラム)", "content": content, "date": datetime.now().strftime('%Y-%m-%d')}}
         except Exception as e:
@@ -867,7 +861,7 @@ class MarketDataFetcher:
                 重要：出力は有効なJSONである必要があります。
                 """
 
-                response_json = self._call_openai_api(prompt, json_mode=True, max_tokens=500)
+                response_json = self._call_openai_api(prompt, max_completion_tokens=500)
                 commentary = response_json.get('response', 'AI解説の生成に失敗しました。')
                 self.data[f'{index_base_name}_heatmap']['ai_commentary'] = commentary
 
