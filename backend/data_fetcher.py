@@ -631,7 +631,7 @@ class MarketDataFetcher:
             ]
 
             kwargs = {
-                "model": "gpt-5-mini",
+                "model": "gpt-4o-mini",
                 "messages": messages,
                 "max_completion_tokens": max_completion_tokens,
                 "response_format": {"type": "json_object"}
