@@ -620,7 +620,7 @@ class MarketDataFetcher:
         if not self.openai_client:
             raise MarketDataError("E005", "OpenAI client is not available.")
         try:
-            logger.info(f"Calling OpenAI API (max_tokens={max_completion_tokens})...")
+            logger.info(f"Calling OpenAI API (max_completion_tokens={max_completion_tokens})...")
 
             messages = [
                 {
