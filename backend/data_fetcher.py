@@ -835,28 +835,65 @@ class MarketDataFetcher:
             avg_sector_perf = {s: sector_perf[s] / sector_count[s] for s in sector_perf}
             return sorted(avg_sector_perf.items(), key=lambda item: item[1], reverse=True)
 
+        def get_stock_performance(stocks, count=5):
+            if not stocks: return [], []
+            # Ensure performance is a float for sorting
+            valid_stocks = [s for s in stocks if isinstance(s.get('performance'), (int, float))]
+            sorted_stocks = sorted(valid_stocks, key=lambda x: x.get('performance', 0), reverse=True)
+            top = sorted_stocks[:count]
+            bottom = sorted_stocks[-count:]
+            return top, bottom
+
         for index_base_name in ['sp500', 'nasdaq']:
             try:
                 heatmap_1d = self.data.get(f'{index_base_name}_heatmap_1d', {})
+                heatmap_1w = self.data.get(f'{index_base_name}_heatmap_1w', {})
+                heatmap_1m = self.data.get(f'{index_base_name}_heatmap_1m', {})
+
                 if not heatmap_1d.get('stocks'):
                     logger.warning(f"No 1-day data for {index_base_name}, skipping AI commentary.")
                     self.data[f'{index_base_name}_heatmap']['ai_commentary'] = "データ不足のためヒートマップ解説をスキップしました。"
                     continue
 
-                sorted_sectors_1d = get_sector_performance(heatmap_1d.get('stocks', []))
-                top_3_1d = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1d[:3]])
-                bottom_3_1d = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sorted_sectors_1d[-3:]])
+                # --- Gather Data ---
+                # Sector performance
+                sectors_1d = get_sector_performance(heatmap_1d.get('stocks', []))
+                sectors_1w = get_sector_performance(heatmap_1w.get('stocks', []))
+                sectors_1m = get_sector_performance(heatmap_1m.get('stocks', []))
+
+                top_3_1d = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sectors_1d[:3]]) if sectors_1d else "N/A"
+                bottom_3_1d = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sectors_1d[-3:]]) if sectors_1d else "N/A"
+                top_3_1w = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sectors_1w[:3]]) if sectors_1w else "N/A"
+                top_3_1m = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sectors_1m[:3]]) if sectors_1m else "N/A"
+
+                # Stock performance for 1d
+                top_5_stocks, bottom_5_stocks = get_stock_performance(heatmap_1d.get('stocks', []))
+                top_stocks_str = ', '.join([f"{s['ticker']} ({s['performance']:.2f}%)" for s in top_5_stocks]) if top_5_stocks else "N/A"
+                bottom_stocks_str = ', '.join([f"{s['ticker']} ({s['performance']:.2f}%)" for s in bottom_5_stocks]) if bottom_5_stocks else "N/A"
 
                 prompt = f"""
-                以下の{index_base_name.upper()}のセクター別パフォーマンスデータを分析してください。
+                あなたはプロの金融アナリストです。以下の{index_base_name.upper()}のヒートマップデータを分析し、日本の個人投資家向けに、市場の状況を分かりやすく解説してください。
 
                 # データ
-                - **1日間パフォーマンス**
+                ## セクター別平均パフォーマンス
+                - **1日間**
                   - 上位3セクター: {top_3_1d}
                   - 下位3セクター: {bottom_3_1d}
+                - **1週間**
+                  - 上位3セクター: {top_3_1w}
+                - **1ヶ月**
+                  - 上位3セクター: {top_3_1m}
+
+                ## 個別銘柄パフォーマンス (1日間)
+                - 上昇上位5銘柄: {top_stocks_str}
+                - 下落上位5銘柄: {bottom_stocks_str}
 
                 # 指示
-                上記データに基づき、今日の市場で特に強かったセクターと弱かったセクターについて、その背景を推測しながら150字程度で簡潔に解説してください。
+                以下の3つの点を必ず含めて、250字〜300字程度で解説を作成してください。
+
+                1.  **短期・中期トレンドの要約**: 1日、1週間、1ヶ月のデータから、現在の市場の短期的な勢いと中期的なトレンドを読み解いてください。
+                2.  **セクターローテーションの兆候**: 短期と中期のパフォーマンスを比較し、資金がどのセクターからどのセクターへ移動しているか（セクターローテーション）の兆候があれば指摘してください。例えば、「ハイテク株からエネルギー株へ資金が流れている可能性があります」のように記述します。
+                3.  **市場の牽引役**: 1日のパフォーマンスが特に良かった銘柄をいくつか挙げ、それらが属するセクターの動きと関連付けて、当日の相場をどの銘柄が牽引したかを説明してください。
 
                 # 出力形式
                 必ず以下のJSON形式で出力してください：
@@ -867,12 +904,17 @@ class MarketDataFetcher:
                 重要：出力は有効なJSONである必要があります。
                 """
 
-                response_json = self._call_openai_api(prompt, max_completion_tokens=500)
+                response_json = self._call_openai_api(prompt, max_completion_tokens=700)
                 commentary = response_json.get('response', 'AI解説の生成に失敗しました。')
+                # Assign commentary to the existing dictionary to avoid overwriting other keys
+                if f'{index_base_name}_heatmap' not in self.data:
+                    self.data[f'{index_base_name}_heatmap'] = {}
                 self.data[f'{index_base_name}_heatmap']['ai_commentary'] = commentary
 
             except Exception as e:
                 logger.error(f"Failed to generate and parse AI commentary for {index_base_name}: {e}")
+                if f'{index_base_name}_heatmap' not in self.data:
+                    self.data[f'{index_base_name}_heatmap'] = {}
                 self.data[f'{index_base_name}_heatmap']['ai_commentary'] = "AI解説の生成中にエラーが発生しました。"
 
     def cleanup_old_data(self):
