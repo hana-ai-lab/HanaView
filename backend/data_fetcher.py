@@ -712,8 +712,8 @@ class MarketDataFetcher:
             }
             return
 
-        # Limit to top 5 news items to avoid overly long prompts
-        top_news = raw_news[:5]
+        # The limit of 5 news items has been removed to allow the AI to analyze all news from the last 24 hours.
+        top_news = raw_news
 
         news_content = ""
         for i, item in enumerate(top_news):
