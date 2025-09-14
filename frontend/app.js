@@ -177,8 +177,16 @@ document.addEventListener('DOMContentLoaded', () => {
             topicsContainer.innerHTML = '<h3>主要トピック</h3>';
             newsData.topics.forEach((topic, index) => {
                 let topicContent = '';
-                if (topic.fact || topic.interpretation || topic.impact) {
-                    // 新しいフォーマット（fact, interpretation, impact）
+                if (topic.analysis && topic.url) {
+                    // 新しいフォーマット（analysis, url）
+                    topicContent = `
+                        <div class="topic-analysis">
+                            <p>${topic.analysis.replace(/\n/g, '<br>')}</p>
+                            <a href="${topic.url}" target="_blank" rel="noopener noreferrer" class="topic-source-link">情報源</a>
+                        </div>
+                    `;
+                } else if (topic.fact || topic.interpretation || topic.impact) {
+                    // 古いフォーマット（fact, interpretation, impact）との互換性
                     topicContent = `
                         <p><strong>事実:</strong> ${topic.fact || 'N/A'}</p>
                         <p><strong>解釈:</strong> ${topic.interpretation || 'N/A'}</p>
