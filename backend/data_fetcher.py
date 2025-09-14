@@ -633,6 +633,7 @@ class MarketDataFetcher:
             kwargs = {
                 "model": "gpt-4o-mini",
                 "messages": messages,
+                "temperature": 0.7,
                 "max_completion_tokens": max_completion_tokens,
                 "response_format": {"type": "json_object"}
             }
