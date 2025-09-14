@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return '#c62828';
     }
 
-    function renderHeatmap(container, title, heatmapData, aiCommentary) {
+    function renderHeatmap(container, title, heatmapData) {
         if (!container) return;
         container.innerHTML = '';
         if (!heatmapData || !heatmapData.stocks || heatmapData.stocks.length === 0) {
@@ -334,15 +334,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         heatmapWrapper.appendChild(svg.node());
         card.appendChild(heatmapWrapper);
-
-        // --- AI Commentary ---
-        if (aiCommentary) {
-            const commentaryDiv = document.createElement('div');
-            commentaryDiv.className = 'ai-commentary';
-            commentaryDiv.innerHTML = `<h3>AI解説</h3><p>${aiCommentary.replace(/\n/g, '<br>')}</p>`;
-            card.appendChild(commentaryDiv);
-        }
-
         container.appendChild(card);
     }
 
@@ -530,6 +521,21 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(card);
     }
 
+    function renderHeatmapCommentary(container, commentary) {
+        if (!container || !commentary) return;
+
+        // Create a wrapper card for the commentary
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const commentaryDiv = document.createElement('div');
+        commentaryDiv.className = 'ai-commentary';
+        commentaryDiv.innerHTML = `<h3>AI解説</h3><p>${commentary.replace(/\n/g, '<br>')}</p>`;
+
+        card.appendChild(commentaryDiv);
+        container.appendChild(card);
+    }
+
     async function fetchDataAndRender() {
         try {
             const response = await fetch('/api/data');
@@ -544,12 +550,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderMarketOverview(document.getElementById('market-content'), data.market);
             renderNews(document.getElementById('news-content'), data.news);
-            renderHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'NASDAQ 100 (1-Day)', data.nasdaq_heatmap_1d, data.nasdaq_heatmap?.ai_commentary);
-            renderHeatmap(document.getElementById('nasdaq-heatmap-1w'), 'NASDAQ 100 (1-Week)', data.nasdaq_heatmap_1w, data.nasdaq_heatmap?.ai_commentary);
-            renderHeatmap(document.getElementById('nasdaq-heatmap-1m'), 'NASDAQ 100 (1-Month)', data.nasdaq_heatmap_1m, data.nasdaq_heatmap?.ai_commentary);
-            renderHeatmap(document.getElementById('sp500-heatmap-1d'), 'S&P 500 (1-Day)', data.sp500_heatmap_1d, data.sp500_heatmap?.ai_commentary);
-            renderHeatmap(document.getElementById('sp500-heatmap-1w'), 'S&P 500 (1-Week)', data.sp500_heatmap_1w, data.sp500_heatmap?.ai_commentary);
-            renderHeatmap(document.getElementById('sp500-heatmap-1m'), 'S&P 500 (1-Month)', data.sp500_heatmap_1m, data.sp500_heatmap?.ai_commentary);
+
+            // Render NASDAQ Heatmaps
+            renderHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'NASDAQ 100 (1-Day)', data.nasdaq_heatmap_1d);
+            renderHeatmap(document.getElementById('nasdaq-heatmap-1w'), 'NASDAQ 100 (1-Week)', data.nasdaq_heatmap_1w);
+            renderHeatmap(document.getElementById('nasdaq-heatmap-1m'), 'NASDAQ 100 (1-Month)', data.nasdaq_heatmap_1m);
+            renderHeatmapCommentary(document.getElementById('nasdaq-content'), data.nasdaq_heatmap?.ai_commentary);
+
+            // Render S&P 500 Heatmaps
+            renderHeatmap(document.getElementById('sp500-heatmap-1d'), 'S&P 500 (1-Day)', data.sp500_heatmap_1d);
+            renderHeatmap(document.getElementById('sp500-heatmap-1w'), 'S&P 500 (1-Week)', data.sp500_heatmap_1w);
+            renderHeatmap(document.getElementById('sp500-heatmap-1m'), 'S&P 500 (1-Month)', data.sp500_heatmap_1m);
+            renderHeatmapCommentary(document.getElementById('sp500-content'), data.sp500_heatmap?.ai_commentary);
+
             renderIndicators(document.getElementById('indicators-content'), data.indicators, data.last_updated);
             renderColumn(document.getElementById('column-content'), data.column);
 
