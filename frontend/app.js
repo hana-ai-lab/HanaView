@@ -561,15 +561,15 @@ document.addEventListener('DOMContentLoaded', () => {
             renderNews(document.getElementById('news-content'), data.news);
 
             // Render NASDAQ Heatmaps
-            renderHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'NASDAQ 100 (1-Day)', data.nasdaq_heatmap_1d);
-            renderHeatmap(document.getElementById('nasdaq-heatmap-1w'), 'NASDAQ 100 (1-Week)', data.nasdaq_heatmap_1w);
-            renderHeatmap(document.getElementById('nasdaq-heatmap-1m'), 'NASDAQ 100 (1-Month)', data.nasdaq_heatmap_1m);
+            renderHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'Nasdaq (1-Day)', data.nasdaq_heatmap_1d);
+            renderHeatmap(document.getElementById('nasdaq-heatmap-1w'), 'Nasdaq (1-Week)', data.nasdaq_heatmap_1w);
+            renderHeatmap(document.getElementById('nasdaq-heatmap-1m'), 'Nasdaq (1-Month)', data.nasdaq_heatmap_1m);
             renderHeatmapCommentary(document.getElementById('nasdaq-commentary'), data.nasdaq_heatmap?.ai_commentary);
 
             // Render S&P 500 Heatmaps
-            renderHeatmap(document.getElementById('sp500-heatmap-1d'), 'S&P 500 (1-Day)', data.sp500_heatmap_1d);
-            renderHeatmap(document.getElementById('sp500-heatmap-1w'), 'S&P 500 (1-Week)', data.sp500_heatmap_1w);
-            renderHeatmap(document.getElementById('sp500-heatmap-1m'), 'S&P 500 (1-Month)', data.sp500_heatmap_1m);
+            renderHeatmap(document.getElementById('sp500-heatmap-1d'), 'SP500 (1-Day)', data.sp500_heatmap_1d);
+            renderHeatmap(document.getElementById('sp500-heatmap-1w'), 'SP500 (1-Week)', data.sp500_heatmap_1w);
+            renderHeatmap(document.getElementById('sp500-heatmap-1m'), 'SP500 (1-Month)', data.sp500_heatmap_1m);
             renderHeatmapCommentary(document.getElementById('sp500-commentary'), data.sp500_heatmap?.ai_commentary);
 
             renderIndicators(document.getElementById('indicators-content'), data.indicators, data.last_updated);
