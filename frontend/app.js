@@ -218,161 +218,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return '#c62828';
     }
 
-    function renderHeatmap(container, title, heatmapData) {
+    function renderGridHeatmap(container, title, heatmapData) {
         if (!container) return;
         container.innerHTML = '';
-        if (!heatmapData || !heatmapData.stocks || heatmapData.stocks.length === 0) {
-            container.innerHTML = `<div class="card"><div class="heatmap-error">No data for ${title}.</div></div>`;
-            return;
+
+        // Handle different possible data keys ('items' or 'stocks') and filter for top 30 if it's a stock heatmap
+        let items = heatmapData?.items || heatmapData?.stocks || [];
+        if (heatmapData?.stocks) {
+            items.sort((a, b) => b.market_cap - a.market_cap);
+            items = items.slice(0, 30);
         }
 
-        // --- Filter and sort data ---
-        // Create a copy of the array to avoid modifying the original data
-        let stocks = [...heatmapData.stocks];
-
-        // Sort by market_cap in descending order and take the top 30
-        stocks.sort((a, b) => b.market_cap - a.market_cap);
-        stocks = stocks.slice(0, 30);
+        if (items.length === 0) {
+            // Do not show an error card if data is missing, just leave it blank.
+            return;
+        }
 
         const card = document.createElement('div');
         card.className = 'card';
         const heatmapWrapper = document.createElement('div');
         heatmapWrapper.className = 'heatmap-wrapper';
         heatmapWrapper.innerHTML = `<h2 class="heatmap-main-title">${title}</h2>`;
-        const width = 1000, height = 900;
-        const svg = d3.create("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "auto").style("font-family", "sans-serif");
-        const root = d3.hierarchy(d3.group(stocks, d => d.sector, d => d.industry)).sum(d => (d && d.market_cap > 0) ? Math.log(d.market_cap) : 0).sort((a, b) => b.value - a.value);
-        d3.treemap().size([width, height]).paddingTop(28).paddingInner(1).round(true)(root);
-        const tooltip = d3.select("body").append("div").attr("class", "heatmap-tooltip").style("opacity", 0);
-        const node = svg.selectAll("g").data(root.descendants()).join("g").attr("transform", d => `translate(${d.x0},${d.y0})`);
-        
-        // Add sector and industry labels with size-based visibility
-        node.filter(d => d.depth === 1 || d.depth === 2).each(function(d) {
-            const groupWidth = d.x1 - d.x0;
-            const groupHeight = d.y1 - d.y0;
-            const groupArea = groupWidth * groupHeight;
-            
-            // Minimum area thresholds
-            const minAreaForSector = 2000;  // Minimum area to show sector label
-            const minAreaForIndustry = 1500; // Minimum area to show industry label
-            
-            if (d.depth === 1 && groupArea > minAreaForSector) {
-                // Sector label
-                const fontSize = Math.min(24, Math.max(18, groupWidth / 15));
-                d3.select(this).append("text")
-                    .attr("class", "sector-label")
-                    .attr("x", 4)
-                    .attr("y", 30)
-                    .style("font-size", `${fontSize}px`)
-                    .text(d.data[0]);
-            } else if (d.depth === 2 && groupArea > minAreaForIndustry) {
-                // Industry label - with truncation if needed
-                const fontSize = Math.min(19.5, Math.max(15, groupWidth / 20));
-                const maxChars = Math.floor(groupWidth / 7); // Approximate character limit based on width
-                let labelText = d.data[0];
-                
-                // Truncate text if it's too long for the available space
-                if (labelText.length > maxChars && maxChars > 3) {
-                    labelText = labelText.substring(0, maxChars - 1) + "…";
-                }
-                
-                // Only show if there's enough space
-                if (maxChars > 5) {
-                    d3.select(this).append("text")
-                        .attr("class", "industry-label")
-                        .attr("x", 4)
-                        .attr("y", 30)
-                        .style("font-size", `${fontSize}px`)
-                        .text(labelText);
-                }
-            }
-        });
-        
-        const leaf = node.filter(d => d.depth === 3);
-        leaf.append("rect").attr("class", "stock-rect").attr("fill", d => getPerformanceColor(d.data.performance)).attr("width", d => d.x1 - d.x0).attr("height", d => d.y1 - d.y0)
-            .on("mouseover", (event, d) => {
-                tooltip.transition().duration(200).style("opacity", .9);
-                tooltip.html(`<strong>${d.data.ticker}</strong><br/>${d.data.industry}<br/>Perf: ${d.data.performance.toFixed(2)}%<br/>Mkt Cap: ${(d.data.market_cap / 1e9).toFixed(2)}B`).style("left", (event.pageX + 5) + "px").style("top", (event.pageY - 28) + "px");
-            }).on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
-        
-        // Calculate tile dimensions and apply dynamic text sizing
-        leaf.each(function(d) {
-            const tileWidth = d.x1 - d.x0;
-            const tileHeight = d.y1 - d.y0;
-            const tileArea = tileWidth * tileHeight;
-            const minAreaForText = 800; // Minimum area to show text
-            const minAreaForPerf = 1500; // Minimum area to show performance percentage
-            
-            if (tileArea > minAreaForText) {
-                const selection = d3.select(this);
-                
-                // Calculate font size based on tile dimensions
-                // Use the smaller dimension to ensure text fits
-                const minDimension = Math.min(tileWidth, tileHeight);
-                let fontSize = Math.max(12, Math.min(24, minDimension / 4));
-                
-                // Add clipPath for text overflow
-                selection.append("clipPath")
-                    .attr("id", `clip-${d.data.ticker}`)
-                    .append("rect")
-                    .attr("width", tileWidth)
-                    .attr("height", tileHeight);
-                
-                const textGroup = selection.append("text")
-                    .attr("class", "stock-label")
-                    .attr("clip-path", `url(#clip-${d.data.ticker})`)
-                    .style("font-size", `${fontSize}px`);
-                
-                // Add ticker symbol
-                textGroup.append("tspan")
-                    .attr("x", 4)
-                    .attr("y", fontSize + 2)
-                    .text(d.data.ticker);
-                
-                // Add performance percentage only if tile is large enough
-                if (tileArea > minAreaForPerf) {
-                    const perfFontSize = fontSize * 0.85;
-                    textGroup.append("tspan")
-                        .attr("x", 4)
-                        .attr("y", fontSize + perfFontSize + 4)
-                        .style("font-size", `${perfFontSize}px`)
-                        .text(`${d.data.performance.toFixed(1)}%`);
-                }
-            }
-        });
-        
-        heatmapWrapper.appendChild(svg.node());
-        card.appendChild(heatmapWrapper);
-        container.appendChild(card);
-    }
 
-    function renderSimpleHeatmap(container, title, heatmapData) {
-        if (!container) return;
-        container.innerHTML = '';
-        if (!heatmapData || !heatmapData.etfs || heatmapData.etfs.length === 0) {
-            // Do not show an error card if data is missing, just leave it blank.
-            // container.innerHTML = `<div class="card"><div class="heatmap-error">No data for ${title}.</div></div>`;
-            return;
-        }
-
-        const etfs = heatmapData.etfs;
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        const heatmapWrapper = document.createElement('div');
-        heatmapWrapper.className = 'heatmap-wrapper'; // Reuse styling
-        heatmapWrapper.innerHTML = `<h2 class="heatmap-main-title">${title}</h2>`;
-
-        const numItems = etfs.length;
-        const itemsPerRow = 6;
+        const numItems = items.length;
+        // Adjust items per row for better layout with ~41 items (30 stocks + 11 ETFs)
+        const itemsPerRow = (numItems > 30) ? 7 : 6;
         const numRows = Math.ceil(numItems / itemsPerRow);
 
         const margin = { top: 10, right: 10, bottom: 10, left: 10 };
         const containerWidth = container.clientWidth || 1000;
         const width = containerWidth - margin.left - margin.right;
         const tileWidth = (width - (itemsPerRow - 1) * 5) / itemsPerRow; // 5px padding
-        const tileHeight = 60; // Fixed height for a cleaner look
-        const height = numRows * (tileHeight + 5) - 5; // 5px padding
+        const tileHeight = 60;
+        const height = numRows * (tileHeight + 5) - 5;
 
         const svg = d3.create("svg")
             .attr("viewBox", `0 0 ${containerWidth} ${height + margin.top + margin.bottom}`)
@@ -388,7 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .style("opacity", 0);
 
         const nodes = g.selectAll("g")
-            .data(etfs)
+            .data(items)
             .enter()
             .append("g")
             .attr("transform", (d, i) => {
@@ -414,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
         const text = nodes.append("text")
-            .attr("class", "stock-label") // Reuse styling
+            .attr("class", "stock-label")
             .attr("x", tileWidth / 2)
             .attr("y", tileHeight / 2)
             .attr("text-anchor", "middle")
@@ -652,21 +530,15 @@ document.addEventListener('DOMContentLoaded', () => {
             renderNews(document.getElementById('news-content'), data.news);
 
             // Render NASDAQ Heatmaps
-            renderHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'Nasdaq (1-Day)', data.nasdaq_heatmap_1d);
-            renderHeatmap(document.getElementById('nasdaq-heatmap-1w'), 'Nasdaq (1-Week)', data.nasdaq_heatmap_1w);
-            renderHeatmap(document.getElementById('nasdaq-heatmap-1m'), 'Nasdaq (1-Month)', data.nasdaq_heatmap_1m);
+            renderGridHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'Nasdaq (1-Day)', data.nasdaq_heatmap_1d);
+            renderGridHeatmap(document.getElementById('nasdaq-heatmap-1w'), 'Nasdaq (1-Week)', data.nasdaq_heatmap_1w);
+            renderGridHeatmap(document.getElementById('nasdaq-heatmap-1m'), 'Nasdaq (1-Month)', data.nasdaq_heatmap_1m);
             renderHeatmapCommentary(document.getElementById('nasdaq-commentary'), data.nasdaq_heatmap?.ai_commentary);
 
-            // Render S&P 500 Heatmaps
-            renderHeatmap(document.getElementById('sp500-heatmap-1d'), 'SP500 (1-Day)', data.sp500_heatmap_1d);
-            renderHeatmap(document.getElementById('sp500-heatmap-1w'), 'SP500 (1-Week)', data.sp500_heatmap_1w);
-            renderHeatmap(document.getElementById('sp500-heatmap-1m'), 'SP500 (1-Month)', data.sp500_heatmap_1m);
-
-            // Render Sector ETF Heatmaps
-            renderSimpleHeatmap(document.getElementById('sector-etf-heatmap-1d'), 'Sector ETFs (1-Day)', data.sector_etf_heatmap_1d);
-            renderSimpleHeatmap(document.getElementById('sector-etf-heatmap-1w'), 'Sector ETFs (1-Week)', data.sector_etf_heatmap_1w);
-            renderSimpleHeatmap(document.getElementById('sector-etf-heatmap-1m'), 'Sector ETFs (1-Month)', data.sector_etf_heatmap_1m);
-
+            // Render S&P 500 & Sector ETF Combined Heatmaps
+            renderGridHeatmap(document.getElementById('sp500-heatmap-1d'), 'SP500 & Sector ETFs (1-Day)', data.sp500_combined_heatmap_1d);
+            renderGridHeatmap(document.getElementById('sp500-heatmap-1w'), 'SP500 & Sector ETFs (1-Week)', data.sp500_combined_heatmap_1w);
+            renderGridHeatmap(document.getElementById('sp500-heatmap-1m'), 'SP500 & Sector ETFs (1-Month)', data.sp500_combined_heatmap_1m);
             renderHeatmapCommentary(document.getElementById('sp500-commentary'), data.sp500_heatmap?.ai_commentary);
 
             renderIndicators(document.getElementById('indicators-content'), data.indicators, data.last_updated);
