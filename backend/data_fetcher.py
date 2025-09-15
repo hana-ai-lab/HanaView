@@ -37,6 +37,28 @@ MONEX_JP_EARNINGS_URL = "https://mst.monex.co.jp/mst/servlet/ITS/fi/FIClosingCal
 VIX_TICKER = "^VIX"
 T_NOTE_TICKER = "^TNX"
 
+# Country to Emoji Mapping
+COUNTRY_EMOJI_MAP = {
+    "jpn": "🇯🇵",
+    "usa": "🇺🇸",
+    "eur": "🇪🇺",
+    "gbr": "🇬🇧",
+    "deu": "🇩🇪",
+    "fra": "🇫🇷",
+    "aus": "🇦🇺",
+    "nzl": "🇳🇿",
+    "can": "🇨🇦",
+    "che": "🇨🇭",
+    "chn": "🇨🇳",
+    "hkg": "🇭🇰",
+    "ind": "🇮🇳",
+    "bra": "🇧🇷",
+    "zaf": "🇿🇦",
+    "tur": "🇹🇷",
+    "kor": "🇰🇷",
+    "sgp": "🇸🇬",
+}
+
 # Important tickers from originalcalendar.py
 US_TICKER_LIST = ["AAPL", "NVDA", "MSFT", "GOOG", "META", "AMZN", "NFLX", "BRK-B", "TSLA", "AVGO", 
                   "LLY", "WMT", "JPM", "V", "UNH", "XOM", "ORCL", "MA", "HD", "PG", "COST", "JNJ", 
@@ -279,67 +301,79 @@ class MarketDataFetcher:
                  self.data['indicators']['error'] = f"[E007] {ERROR_CODES['E007']}: {e}"
 
     def _fetch_economic_indicators(self, dt_now):
-        """Fetch economic indicators from Monex using curl_cffi and pandas. Timezone-aware."""
+        """Fetch economic indicators from Monex using curl_cffi and BeautifulSoup. Timezone-aware."""
         logger.info("Fetching economic indicators from Monex...")
         try:
             response = self.http_session.get(MONEX_ECONOMIC_CALENDAR_URL, timeout=30)
             response.raise_for_status()
-
-            # Decode the content using shift_jis for Japanese websites
             html_content = response.content.decode('shift_jis', errors='replace')
-            tables = pd.read_html(StringIO(html_content), flavor='lxml')
-            
-            if len(tables) < 3:
+            soup = BeautifulSoup(html_content, 'lxml')
+
+            table = soup.find('table', class_='eindicator-list')
+            if not table:
                 logger.warning("Could not find the expected economic calendar table.")
                 self.data['indicators']['economic'] = []
                 return
 
-            df = tables[2]
-            df.columns = ['date', 'time', 'importance', 'country', 'name', 'previous', 'forecast', 'result', 'notes']
-            
+            indicators = []
             jst = timezone(timedelta(hours=9))
             dt_now_jst = datetime.now(jst)
-            
-            indicators = []
-            for _, row in df.iterrows():
-                try:
-                    date_str = row['date']
-                    time_str = row['time']
+            current_date_str = ""
 
-                    if pd.isna(date_str) or pd.isna(time_str) or '発表' in str(date_str):
+            for row in table.find('tbody').find_all('tr'):
+                cells = row.find_all('td')
+
+                try:
+                    # Handle date cells with rowspan
+                    if 'rowspan' in cells[0].attrs:
+                        current_date_str = cells[0].text.strip()
+                        cell_offset = 0
+                    else:
+                        cell_offset = -1
+
+                    time_str = cells[1 + cell_offset].text.strip()
+                    if not time_str or time_str == '-':
                         continue
 
-                    # Reconstruct datetime and make it JST-aware
-                    full_date_str = f"{dt_now_jst.year}/{str(date_str).split('(')[0]} {str(time_str)}"
+                    full_date_str = f"{dt_now_jst.year}/{current_date_str.split('(')[0]} {time_str}"
                     tdatetime = datetime.strptime(full_date_str, '%Y/%m/%d %H:%M')
                     tdatetime_aware = tdatetime.replace(tzinfo=jst)
 
-                    # Timezone-aware comparison with the original window
-                    if tdatetime_aware > dt_now_jst - timedelta(hours=2) and tdatetime_aware < dt_now_jst + timedelta(hours=26):
-                        importance_str = row['importance']
-                        if isinstance(importance_str, str) and "★" in importance_str:
-                            # Helper to safely get values from the row
-                            def get_value(col_name, default='--'):
-                                val = row.get(col_name)
-                                # Check for pandas missing values
-                                if pd.isna(val):
-                                    return default
-                                # Check for common placeholder strings
-                                if isinstance(val, str) and val.strip() in ['-', '--', 'None', '']:
-                                    return default
-                                return val
+                    if not (dt_now_jst - timedelta(hours=2) < tdatetime_aware < dt_now_jst + timedelta(hours=26)):
+                        continue
 
-                            indicator = {
-                                "datetime": tdatetime_aware.strftime('%m/%d %H:%M'),
-                                "name": get_value('name'),
-                                "importance": importance_str,
-                                "previous": get_value('previous'),
-                                "forecast": get_value('forecast'),
-                                "type": "economic"
-                            }
-                            indicators.append(indicator)
-                except Exception as e:
-                    logger.debug(f"Skipping row in economic indicators: {row.to_list()} due to {e}")
+                    importance_str = cells[2 + cell_offset].text.strip()
+                    if "★" not in importance_str:
+                        continue
+
+                    # Extract country emoji
+                    country_cell = cells[3 + cell_offset]
+                    img_tag = country_cell.find('img')
+                    emoji = ''
+                    if img_tag and img_tag.get('src'):
+                        match = re.search(r'inner_flag_(\w+)\.(?:gif|png)', img_tag['src'])
+                        if match:
+                            country_code = match.group(1)
+                            emoji = COUNTRY_EMOJI_MAP.get(country_code, '')
+
+                    def get_value(cell_index, default='--'):
+                        val = cells[cell_index].text.strip()
+                        return val if val else default
+
+                    name = get_value(4 + cell_offset)
+
+                    indicator = {
+                        "datetime": tdatetime_aware.strftime('%m/%d %H:%M'),
+                        "name": f"{emoji} {name}".strip(),
+                        "importance": importance_str,
+                        "previous": get_value(5 + cell_offset),
+                        "forecast": get_value(6 + cell_offset),
+                        "type": "economic"
+                    }
+                    indicators.append(indicator)
+
+                except (ValueError, IndexError) as e:
+                    logger.debug(f"Skipping row in economic indicators: {row.text.strip()} due to {e}")
                     continue
             
             self.data['indicators']['economic'] = indicators
