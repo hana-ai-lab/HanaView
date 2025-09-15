@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (marketData.ai_commentary) {
             content += `
                 <div class="market-section">
-                    <h3>AI市況解説</h3>
+                    <h3>AI解説</h3>
                     <p>${marketData.ai_commentary}</p>
                 </div>
             `;

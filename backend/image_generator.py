@@ -123,7 +123,7 @@ def generate_fear_greed_chart(data):
 
         circle = Circle((x_circle, current_y), 0.1, facecolor=bg, edgecolor=border, linewidth=1.0, zorder=3)
         ax.add_patch(circle)
-        ax.text(x_circle, current_y, str(val), ha='center', va='center', fontsize=10, fontweight='bold', color='white')
+        ax.text(x_circle, current_y, str(val), ha='center', va='center', fontsize=10, fontweight='bold', color='black')
 
         if i < len(history_keys) - 1:
             line_y = current_y + y_step / 2
