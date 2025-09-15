@@ -159,52 +159,85 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderNews(container, newsData) {
+    function renderNews(container, newsData, lastUpdated) {
         if (!container) return;
         container.innerHTML = '';
         if (!newsData || (!newsData.summary && (!newsData.topics || newsData.topics.length === 0))) {
             container.innerHTML = '<div class="card"><p>ニュースデータがありません。</p></div>';
             return;
         }
+
         const card = document.createElement('div');
-        card.className = 'card';
+        card.className = 'card news-card'; // Add news-card for specific styling
+
+        // --- Summary Section ---
         if (newsData.summary) {
-            card.innerHTML += `<div class="news-summary"><h3>今朝の3行サマリー</h3><p>${newsData.summary.replace(/\n/g, '<br>')}</p></div>`;
+            const summaryContainer = document.createElement('div');
+            summaryContainer.className = 'news-summary';
+
+            // Title and Date
+            const summaryHeader = document.createElement('div');
+            summaryHeader.className = 'news-summary-header';
+            summaryHeader.innerHTML = '<h3>今朝の3行サマリー</h3>';
+            if (lastUpdated) {
+                const date = new Date(lastUpdated);
+                const dateString = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+                summaryHeader.innerHTML += `<p class="summary-date">${dateString}</p>`;
+            }
+
+            // Body and Image
+            const summaryBody = document.createElement('div');
+            summaryBody.className = 'news-summary-body';
+            summaryBody.innerHTML = `<p>${newsData.summary.replace(/\n/g, '<br>')}</p>`;
+            summaryBody.innerHTML += `<img src="icons/suit.PNG" alt="suit" class="summary-image">`;
+
+            summaryContainer.appendChild(summaryHeader);
+            summaryContainer.appendChild(summaryBody);
+            card.appendChild(summaryContainer);
         }
+
+        // --- Topics Section ---
         if (newsData.topics && newsData.topics.length > 0) {
+            const topicsOuterContainer = document.createElement('div');
+            topicsOuterContainer.className = 'main-topics-outer-container';
+            topicsOuterContainer.innerHTML = '<h3>主要トピック</h3>';
+
             const topicsContainer = document.createElement('div');
             topicsContainer.className = 'main-topics-container';
-            topicsContainer.innerHTML = '<h3>主要トピック</h3>';
+
             newsData.topics.forEach((topic, index) => {
+                const topicBox = document.createElement('div');
+                topicBox.className = 'topic-box';
+
                 let topicContent = '';
                 if (topic.analysis && topic.url) {
-                    // 新しいフォーマット（analysis, url）
-                    topicContent = `
-                        <div class="topic-analysis">
-                            <p>${topic.analysis.replace(/\n/g, '<br>')}</p>
-                            <a href="${topic.url}" target="_blank" rel="noopener noreferrer" class="topic-source-link">情報源</a>
-                        </div>
-                    `;
-                } else if (topic.fact || topic.interpretation || topic.impact) {
-                    // 古いフォーマット（fact, interpretation, impact）との互換性
+                    topicContent = `<p>${topic.analysis.replace(/\n/g, '<br>')}</p>`;
+                } else if (topic.body) {
+                    topicContent = `<p>${topic.body}</p>`;
+                } else {
                     topicContent = `
                         <p><strong>事実:</strong> ${topic.fact || 'N/A'}</p>
                         <p><strong>解釈:</strong> ${topic.interpretation || 'N/A'}</p>
                         <p><strong>市場への影響:</strong> ${topic.impact || 'N/A'}</p>
                     `;
-                } else if (topic.body) {
-                    // 古いフォーマット（body）との互換性
-                    topicContent = `<p>${topic.body}</p>`;
                 }
 
-                topicsContainer.innerHTML += `
-                    <div class="topic-box">
-                        <p class="topic-title ${index === 0 ? 'topic-title-red' : 'topic-title-blue'}">${index + 1}. ${topic.title}</p>
-                        ${topicContent}
-                    </div>`;
+
+                topicBox.innerHTML = `
+                    <div class="topic-number-container">
+                        <div class="topic-number">${index + 1}</div>
+                    </div>
+                    <div class="topic-details">
+                        <p class="topic-title">${topic.title}</p>
+                        <div class="topic-content">${topicContent}</div>
+                    </div>
+                `;
+                topicsContainer.appendChild(topicBox);
             });
-            card.appendChild(topicsContainer);
+            topicsOuterContainer.appendChild(topicsContainer);
+            card.appendChild(topicsOuterContainer);
         }
+
         container.appendChild(card);
     }
 
@@ -562,7 +595,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             renderMarketOverview(document.getElementById('market-content'), data.market);
-            renderNews(document.getElementById('news-content'), data.news);
+            renderNews(document.getElementById('news-content'), data.news, data.last_updated);
 
             // Render NASDAQ Heatmaps
             renderGridHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'Nasdaq (1-Day)', data.nasdaq_heatmap_1d);
