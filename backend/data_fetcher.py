@@ -794,17 +794,44 @@ class MarketDataFetcher:
 
     def generate_market_commentary(self):
         logger.info("Generating AI commentary...")
-        vix = self.data.get('market', {}).get('vix', {}).get('current', 'N/A')
-        t_note = self.data.get('market', {}).get('t_note_future', {}).get('current', 'N/A')
+
+        # --- Fear & Greed Data ---
         fear_greed_data = self.data.get('market', {}).get('fear_and_greed', {})
-        fear_greed_value = fear_greed_data.get('now', 'N/A')
-        fear_greed_category = fear_greed_data.get('category', 'N/A')
+        fg_now_val = fear_greed_data.get('now', 'N/A')
+        fg_now_cat = self._get_fear_greed_category(fg_now_val)
+        fg_week_val = fear_greed_data.get('prev_week', 'N/A')
+        fg_week_cat = self._get_fear_greed_category(fg_week_val)
+        fg_month_val = fear_greed_data.get('prev_month', 'N/A')
+        fg_month_cat = self._get_fear_greed_category(fg_month_val)
+
+        # --- VIX and T-Note History ---
+        vix_history = self.data.get('market', {}).get('vix', {}).get('history', [])
+        t_note_history = self.data.get('market', {}).get('t_note_future', {}).get('history', [])
+
+        # Function to format history for the prompt
+        def format_history(history, days=30):
+            if not history:
+                return "N/A"
+            # Assuming history is sorted, take the last 'days' worth of 4-hour intervals
+            # 30 days * 6 (4h intervals per day) = 180 data points
+            recent_history = history[- (days * 6) :]
+            return ", ".join([str(item['close']) for item in recent_history])
+
+        vix_history_str = format_history(vix_history)
+        t_note_history_str = format_history(t_note_history)
 
         prompt = f"""以下の市場データを基に、日本の個人投資家向けに本日の米国市場の状況を150字程度で簡潔に解説してください。
 
-        - VIX指数: {vix}
-        - 米国10年債先物: {t_note}
-        - Fear & Greed Index: {fear_greed_value} ({fear_greed_category})
+        - **Fear & Greed Index**:
+          - 現在: {fg_now_val} ({fg_now_cat})
+          - 1週間前: {fg_week_val} ({fg_week_cat})
+          - 1ヶ月前: {fg_month_val} ({fg_month_cat})
+
+        - **VIX指数 (直近1ヶ月)**:
+          - {vix_history_str}
+
+        - **米国10年債金利 (直近1ヶ月)**:
+          - {t_note_history_str}
 
         必ず以下のJSON形式で出力してください：
         {{"response": "ここに解説を記述"}}
@@ -812,7 +839,7 @@ class MarketDataFetcher:
         重要：出力は有効なJSONである必要があります。"""
 
         try:
-            response_json = self._call_openai_api(prompt, max_completion_tokens=250)
+            response_json = self._call_openai_api(prompt, max_completion_tokens=400) # Increased token limit
             self.data['market']['ai_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
         except Exception as e:
             logger.error(f"Failed to generate and parse AI commentary: {e}")
