@@ -2482,8 +2482,8 @@
       ]
     },
     "fear_and_greed": {
-      "now": 57,
-      "previous_close": 57,
+      "now": 58,
+      "previous_close": 58,
       "prev_week": 51,
       "prev_month": 64,
       "prev_year": 50,
@@ -2588,6 +2588,22 @@
         "previous": "32.0",
         "forecast": "33.0",
         "type": "economic"
+      },
+      {
+        "datetime": "09/17 08:50",
+        "name": "🇯🇵 通関ベース貿易収支",
+        "importance": "★★",
+        "previous": "-1,175億円  (-1,184億円)",
+        "forecast": "-5,150億円",
+        "type": "economic"
+      },
+      {
+        "datetime": "09/17 08:50",
+        "name": "🇯🇵 通関ベース貿易収支（季調済）",
+        "importance": "★",
+        "previous": "-3,030億円",
+        "forecast": "-3,400億円",
+        "type": "economic"
       }
     ],
     "us_earnings": [],
@@ -2595,88 +2611,34 @@
   },
   "news_raw": [
     {
-      "title": "How major US stock indexes fared Monday, 9/15/2025",
-      "link": "https://finance.yahoo.com/news/major-us-stock-indexes-fared-201947887.html",
-      "publisher": "Associated Press Finance",
-      "summary": "Wall Street ticked to more records.  The Dow Jones Industrial Average edged up 0.1%, and the Nasdaq composite added 0.9% to its all-time high.  Tesla jumped after Elon Musk bought stock worth roughly $1 billion in it, potentially signaling his faith in the electric vehicle company."
+      "title": "S&P 500 Gains and Losses Today: Seagate and Western Digital Surge; JM Smucker Stock Slides",
+      "link": "https://www.investopedia.com/s-and-p-500-gains-and-losses-today-seagate-and-western-digital-surge-jm-smucker-stock-slides-11810250",
+      "publisher": "Investopedia",
+      "summary": "AI demand and planned price hikes helped lift data storage stocks on Monday, Sept. 15, 2025, while an analyst downgrade pressured a packaged food player."
     },
     {
-      "title": "US Equity Markets End Higher After Positive Reports Around US-China Trade Negotiations",
-      "link": "https://finance.yahoo.com/news/us-equity-markets-end-higher-201355780.html",
-      "publisher": "MT Newswires",
-      "summary": "US equity indexes ended higher on Monday after President Donald Trump stated that US-China trade neg"
-    },
-    {
-      "title": "Nasdaq, S&P 500 reach new record highs amid Monday stock gains",
-      "link": "https://finance.yahoo.com/video/nasdaq-p-500-reach-record-201059923.html",
+      "title": "Megacap gains, Fed dissent, rate cuts: Market Takeaways",
+      "link": "https://finance.yahoo.com/video/megacap-gains-fed-dissent-rate-211000678.html",
       "publisher": "Yahoo Finance Video",
-      "summary": "US stocks (^DJI, ^IXIC, ^GSPC) close out Monday's session in positive territory, the Nasdaq Composite leading the charge with a 0.95% gain and notching a new record high alongside the S&P 500. Yahoo Finance markets and data editor Jared Blikre recaps the trading day's market action ahead of this week's Federal Reserve meeting. To watch more expert insights and analysis on the latest market action, check out more&nbsp;Market Domination Overtime."
+      "summary": "US stocks (^DJI, ^IXIC, ^GSPC) are on a roll as all three of the major indexes close out Monday's session in positive territory, the S&P 500 and Nasdaq Composite reaching fresh record highs. Yahoo Finance markets and data editor Jared Blikre recaps the biggest themes in the day's trading activity and stock moves, including the rally in mega-cap stocks and possible dissent between Federal Reserve officials on the central bank's interest rate pathway. To watch more expert insights and analysis on the latest market action, check out more&nbsp;Asking for a Trend."
     },
     {
-      "title": "Boeing Stock: Three Reasons To Keep An Eye On The Chart This Week",
-      "link": "https://www.investors.com/news/boeing-stock-three-reasons-to-keep-an-eye-on-the-chart-this-week/?src=A00220&yptr=yahoo",
+      "title": "Dow Jones Futures: Nvidia, Shopify, Uber In Buy Zones; Fed Meeting Next",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-nvidia-stock-nvda-shop-uber-fed-meeting/?src=A00220&yptr=yahoo",
       "publisher": "Investor's Business Daily",
-      "summary": "Boeing stock could be set for another down week. FAA fines, new reports lead headlines for the Dow Jones plane maker."
+      "summary": "Dow Jones Futures: Nvidia stock, Shopify and Uber are in buy zones Monday. The Fed's two-day policy meeting kicks off Tuesday."
     },
     {
-      "title": "US Equity Indexes Rise Ahead of Monday's Close",
-      "link": "https://finance.yahoo.com/news/us-equity-indexes-rise-ahead-200528259.html",
+      "title": "Nasdaq, S&P 500 Hit New Highs Amid Optimism Around China Trade Talks",
+      "link": "https://finance.yahoo.com/news/nasdaq-p-500-hit-highs-210321416.html",
       "publisher": "MT Newswires",
-      "summary": "US equity indexes rose while government bond yields declined ahead of the close on Monday. The Na"
+      "summary": "The Nasdaq Composite and the S&P 500 reached new peaks on Monday amid optimism around trade talks wi"
     },
     {
-      "title": "Top Cryptocurrencies Fall; Bitcoin Hovers Above $115,000 Level",
-      "link": "https://finance.yahoo.com/news/top-cryptocurrencies-fall-bitcoin-hovers-195841531.html",
+      "title": "US Equity Indexes Rise, Paced by Gains in Communication Services, Consumer Discretionary",
+      "link": "https://finance.yahoo.com/news/us-equity-indexes-rise-paced-204838451.html",
       "publisher": "MT Newswires",
-      "summary": "Major digital assets fell Monday, with Bitcoin (BTC-USD) also weaker but holding above the $115,000"
-    },
-    {
-      "title": "Sector Update: Energy Stocks Mixed in Late Afternoon Trading",
-      "link": "https://finance.yahoo.com/news/sector-energy-stocks-mixed-afternoon-195253613.html",
-      "publisher": "MT Newswires",
-      "summary": "Energy stocks were mixed late Monday afternoon, with the NYSE Energy Sector Index up 0.3% and the En"
-    },
-    {
-      "title": "Tesla Stock Surge Leads to Downgrade. Why Elon Musk Is a ‘Wartime’ CEO.",
-      "link": "https://www.barrons.com/articles/tesla-stock-price-elon-musk-war-8a3edb37?siteid=yhoof2&yptr=yahoo",
-      "publisher": "Barrons.com",
-      "summary": "FEATURE   Tesla stock shot higher Monday as CEO Elon Musk gets ready for an artificial intelligence “war.”  Shares of the electric-vehicle maker traded as high as $425.70 before sliding back to $407.24, up 2."
-    },
-    {
-      "title": "Stock Market Today: Indexes Up As Chips Fall On China; Buffett Stock Tests Entry (Live Coverage)",
-      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-fed-meeting-tesla-stock-tsla-elon-musk/?src=A00220&yptr=yahoo",
-      "publisher": "Investor's Business Daily",
-      "summary": "The Dow was firm and the Nasdaq gained. Tesla rose on the stock market today after an Elon Musk move. A Warren Buffett stock tested an entry."
-    },
-    {
-      "title": "Sector Update: Energy",
-      "link": "https://finance.yahoo.com/news/sector-energy-192845344.html",
-      "publisher": "MT Newswires",
-      "summary": "Energy stocks were mixed late Monday afternoon, with the NYSE Energy Sector Index up 0.3% and the En"
-    },
-    {
-      "title": "S&P 500, Nasdaq Touch Fresh Highs Intraday",
-      "link": "https://www.barrons.com/livecoverage/stock-market-news-today-091525/card/s-p-500-nasdaq-touch-fresh-highs-intraday-ggW0kL5ymrwd5ZcnJIpz?siteid=yhoof2&yptr=yahoo",
-      "publisher": "Barrons.com",
-      "summary": "The S&P 500 was up 0.4% after setting an intraday record.  The Nasdaq Composite, which also set a fresh intraday high, was up 0.8%.  The Dow continued to bounce in and out of positive territory, though it’s not far off its Sept. 11 closing high."
-    },
-    {
-      "title": "Equities Rise Intraday as Trump Upbeat on US-China Trade Discussions; Tesla Jumps",
-      "link": "https://finance.yahoo.com/news/equities-rise-intraday-trump-upbeat-181909499.html",
-      "publisher": "MT Newswires",
-      "summary": "US benchmark equity indexes were higher after midday Monday as President Donald Trump sounded upbeat"
-    },
-    {
-      "title": "Dogecoin and Solana Look Poised to Break September Crypto Curse: Analysis",
-      "link": "https://decrypt.co/339525/dogecoin-solana-price-september-crypto-curse-analysis",
-      "publisher": "decrypt",
-      "summary": "Despite traditional September weakness, crypto majors like Solana and Dogecoin are inching higher as the Fed weighs rate cuts. Here's what the charts say."
-    },
-    {
-      "title": "Strata Critical Medical Leads Our Top 3 Penny Stock Picks",
-      "link": "https://finance.yahoo.com/news/strata-critical-medical-leads-top-180511736.html",
-      "publisher": "Simply Wall St.",
-      "summary": "As the Nasdaq and S&P 500 reach record highs, investors are keenly watching the Federal Reserve's upcoming interest rate decision, which could influence market dynamics. Penny stocks, often associated with smaller or emerging companies, remain a relevant investment area despite their vintage label. By focusing on those with strong financials and growth potential, investors may uncover opportunities for value and stability in this unique segment of the market."
+      "summary": "US equity indexes advanced on Monday, led by communication services and consumer discretionary secto"
     },
     {
       "title": "Alphabet Hits $3 Trillion Valuation. What to Do With the Stock Now.",
@@ -2685,34 +2647,70 @@
       "summary": "Alphabet’s market value passed $3 trillion for the first time on Monday, according to Dow Jones Market Data."
     },
     {
-      "title": "Why the Dow Is Lagging Behind the S&P 500 and Nasdaq",
-      "link": "https://www.barrons.com/livecoverage/stock-market-news-today-091525/card/why-the-dow-is-lagging-behind-the-s-p-500-and-nasdaq-yx95hS50oaHVQzpQrC5I?siteid=yhoof2&yptr=yahoo",
+      "title": "This Power Stock Is Up 5x Since April 2024. There’s More Room to Run, Analyst Says.",
+      "link": "https://www.barrons.com/articles/ge-vernova-stock-upgrade-eaton-37e48366?siteid=yhoof2&yptr=yahoo",
       "publisher": "Barrons.com",
-      "summary": "The Dow was moving in and out of positive territory on Monday because of struggles among its heavier hitters.  The blue-chip index rose more than 100 points shortly after the open but was essentially flat in the early afternoon.  The S&P 500 was up 0.3%, while the Nasdaq Composite was up 0.8%."
-    },
-    {
-      "title": "China Says Nvidia Broke Monopoly Laws. What It Means for the Chip Maker.",
-      "link": "https://www.barrons.com/articles/nvidia-stock-china-monopoly-laws-36c1517c?siteid=yhoof2&yptr=yahoo",
-      "publisher": "Barrons.com",
-      "summary": "Beijing announces the probe as officials from both the U.S. and China gather in Madrid for trade talks."
-    },
-    {
-      "title": "China's market rally has been 'aggressive': US-China trade latest",
-      "link": "https://finance.yahoo.com/video/chinas-market-rally-aggressive-us-164500863.html",
-      "publisher": "Yahoo Finance Video",
-      "summary": "The US has reentered trade negotiations with Chinese officials, kicking off talks over the weekend. Alongside tariffs, other topics such as TikTok and antitrust probes on US chipmakers were discussed at this meeting in Madrid, Spain. Matthews Asia portfolio manager Andrew Mattock reacts to the latest economic data reported out of China and the country's own market recovery, particularly in the property sector. To watch more expert insights and analysis on the latest market action, check out more&nbsp;Market Catalysts."
-    },
-    {
-      "title": "Which Stocks Would Benefit From Fed Rate Cuts? Watch the 2-Year Yield.",
-      "link": "https://www.barrons.com/articles/stocks-fed-rate-cuts-bond-yields-c0f1d30b?siteid=yhoof2&yptr=yahoo",
-      "publisher": "Barrons.com",
-      "summary": "Stocks should extend their record-setting rally deep into next year, fueled by a series of Fed rate cuts that—by most accounts—will begin this week.  Investors are betting that lower Fed rates in tandem with stimulative tax policies and steady economic growth will most certainly drive markets higher into next year.  Citigroup  analysts, led by Scott Chronert, argue that Fed rate cuts won’t have a uniform impact on stocks because cuts generally signal economic weakness over the near term."
+      "summary": "Monday, Melius analyst Rob Wertheimer upgraded shares of electrical infrastructure providers GE Vernova and Eaton to Buy from Hold."
     },
     {
       "title": "Elon Musk Buys Tesla Stock for First Time Since 2020. Should You?",
       "link": "https://www.barrons.com/articles/elon-musk-buys-tesla-stock-90a13e18?siteid=yhoof2&yptr=yahoo",
       "publisher": "Barrons.com",
-      "summary": "Tesla  stock was soaring after Elon Musk bought shares for the first time since 2020—and it could be a good sign for investors in the shares.  As is the case with so many things about Tesla, typical rules don’t apply.  Shares of Tesla were up 6.1% at $420.11 in midday trading, while the  and  were up 0.5% and 0.1%, respectively."
+      "summary": "Tesla  stock was soaring after Elon Musk bought shares for the first time since 2020—and it could be a good sign for investors in the shares.  As is the case with so many things about Tesla, typical rules don’t apply.  The jump came after Musk disclosed purchases of 2.6 million shares worth about $1 billion made on Friday."
+    },
+    {
+      "title": "Stock Market Today: Dow Up As Buffett Stock Tests Entry; Tesla Jumps On Musk Move (Live Coverage)",
+      "link": "https://www.investors.com/market-trend/stock-market-today/dow-jones-sp500-nasdaq-fed-meeting-tesla-stock-tsla-elon-musk/?src=A00220&yptr=yahoo",
+      "publisher": "Investor's Business Daily",
+      "summary": "The Dow was firm and the Nasdaq gained. Tesla rose on the stock market today after an Elon Musk move. A Warren Buffett stock tested an entry."
+    },
+    {
+      "title": "How major US stock indexes fared Monday, 9/15/2025",
+      "link": "https://finance.yahoo.com/news/major-us-stock-indexes-fared-201947887.html",
+      "publisher": "Associated Press Finance",
+      "summary": "Wall Street ticked to more records.  The Dow Jones Industrial Average edged up 0.1%, and the Nasdaq composite added 0.9% to its all-time high.  Tesla jumped after Elon Musk bought stock worth roughly $1 billion in it, potentially signaling his faith in the electric vehicle company."
+    },
+    {
+      "title": "Tesla Stock Surge Leads to Downgrade. Why Elon Musk Is a ‘Wartime’ CEO.",
+      "link": "https://www.barrons.com/articles/tesla-stock-price-elon-musk-war-8a3edb37?siteid=yhoof2&yptr=yahoo",
+      "publisher": "Barrons.com",
+      "summary": "FEATURE   Tesla stock shot higher Monday as CEO Elon Musk gets ready for an artificial intelligence “war.”  Shares of the electric-vehicle maker traded as high as $425.70 before sliding back to $410.26, up 3."
+    },
+    {
+      "title": "US Equity Markets End Higher After Positive Reports Around US-China Trade Negotiations",
+      "link": "https://finance.yahoo.com/news/us-equity-markets-end-higher-201355780.html",
+      "publisher": "MT Newswires",
+      "summary": "US equity indexes ended higher on Monday after President Donald Trump stated that US-China trade neg"
+    },
+    {
+      "title": "US Equity Indexes Rise Ahead of Monday's Close",
+      "link": "https://finance.yahoo.com/news/us-equity-indexes-rise-ahead-200528259.html",
+      "publisher": "MT Newswires",
+      "summary": "US equity indexes rose while government bond yields declined ahead of the close on Monday. The Na"
+    },
+    {
+      "title": "S&P 500, Nasdaq Hit Records as Mag 7 Stocks Drive the Rally",
+      "link": "https://www.barrons.com/livecoverage/stock-market-news-today-091525/card/s-p-500-nasdaq-hit-records-as-mag-7-stocks-drive-the-rally-VuNcf1kMIEthH4Sq859y?siteid=yhoof2&yptr=yahoo",
+      "publisher": "Barrons.com",
+      "summary": "Megacap tech stocks powered the major indexes higher as Wall Street continued to set records with a big interest-rate decision looming later this week. The Dow Jones Industrial Average rose 50 points, or 0."
+    },
+    {
+      "title": "Why Trump is suggesting companies report earnings less frequently",
+      "link": "https://finance.yahoo.com/video/why-trump-suggesting-companies-report-194516903.html",
+      "publisher": "Yahoo Finance Video",
+      "summary": "President Trump suggested that companies should report earnings results on a semi-annual basis — or every six months — rather than every quarter on Monday. Miller Tabak managing director and equity strategist Matt Maley explains why he views this form of deregulation as a \"double-edged sword\" for the Trump administration. To watch more expert insights and analysis on the latest market action, check out more&nbsp;Market Domination."
+    },
+    {
+      "title": "S&P 500, Nasdaq Touch Fresh Highs Intraday",
+      "link": "https://www.barrons.com/livecoverage/stock-market-news-today-091525/card/s-p-500-nasdaq-touch-fresh-highs-intraday-ggW0kL5ymrwd5ZcnJIpz?siteid=yhoof2&yptr=yahoo",
+      "publisher": "Barrons.com",
+      "summary": "The S&P 500 was up 0.4% after setting an intraday record.  The Nasdaq Composite, which also set a fresh intraday high, was up 0.8%.  The Dow continued to bounce in and out of positive territory, though it’s not far off its Sept. 11 closing high."
+    },
+    {
+      "title": "Fed's biggest worry is 'spurring inflation again'",
+      "link": "https://finance.yahoo.com/video/fed-most-worried-spurring-inflation-100020387.html",
+      "publisher": "Yahoo Finance Video",
+      "summary": "All eyes are on the Federal Reserve a week ahead of the US central bank's September FOMC meeting, which is likely to result in a cut to interest rates. US Treasury Secretary Scott Bessent wrote in an op-ed for the Wall Street Journal last week that the Fed needs to \"change course.\" Manulife Investment Management head of developed-market fixed income Jeff Given joins Josh Lipton for a conversation about the Fed's current strategy to control inflation after August's disappointing jobs numbers. To watch more expert insights and analysis on the latest market action, check out more&nbsp;Market Domination."
     }
   ],
   "sp500_heatmap_1d": {
@@ -4769,13 +4767,6 @@
         "performance": 0.41
       },
       {
-        "ticker": "L",
-        "sector": "Financial Services",
-        "industry": "Insurance - Property & Casualty",
-        "market_cap": 20103727104,
-        "performance": -0.75
-      },
-      {
         "ticker": "LOW",
         "sector": "Consumer Cyclical",
         "industry": "Home Improvement Retail",
@@ -5194,13 +5185,6 @@
         "industry": "Advertising Agencies",
         "market_cap": 14887612416,
         "performance": -0.45
-      },
-      {
-        "ticker": "ON",
-        "sector": "Technology",
-        "industry": "Semiconductors",
-        "market_cap": 19675740160,
-        "performance": -0.31
       },
       {
         "ticker": "OKE",
@@ -6041,13 +6025,6 @@
         "industry": "REIT - Diversified",
         "market_cap": 35275522048,
         "performance": -0.24
-      },
-      {
-        "ticker": "V",
-        "sector": "Financial Services",
-        "industry": "Credit Services",
-        "market_cap": 658075680768,
-        "performance": -0.11
       },
       {
         "ticker": "VST",
@@ -8294,13 +8271,6 @@
         "performance": 3.08
       },
       {
-        "ticker": "L",
-        "sector": "Financial Services",
-        "industry": "Insurance - Property & Casualty",
-        "market_cap": 20103727104,
-        "performance": 0.94
-      },
-      {
         "ticker": "LOW",
         "sector": "Consumer Cyclical",
         "industry": "Home Improvement Retail",
@@ -8719,13 +8689,6 @@
         "industry": "Advertising Agencies",
         "market_cap": 14887612416,
         "performance": -2.65
-      },
-      {
-        "ticker": "ON",
-        "sector": "Technology",
-        "industry": "Semiconductors",
-        "market_cap": 19675740160,
-        "performance": -1.58
       },
       {
         "ticker": "OKE",
@@ -9566,13 +9529,6 @@
         "industry": "REIT - Diversified",
         "market_cap": 35275522048,
         "performance": -0.69
-      },
-      {
-        "ticker": "V",
-        "sector": "Financial Services",
-        "industry": "Credit Services",
-        "market_cap": 658075680768,
-        "performance": -0.95
       },
       {
         "ticker": "VST",
@@ -11819,13 +11775,6 @@
         "performance": 8.95
       },
       {
-        "ticker": "L",
-        "sector": "Financial Services",
-        "industry": "Insurance - Property & Casualty",
-        "market_cap": 20103727104,
-        "performance": 2.09
-      },
-      {
         "ticker": "LOW",
         "sector": "Consumer Cyclical",
         "industry": "Home Improvement Retail",
@@ -12244,13 +12193,6 @@
         "industry": "Advertising Agencies",
         "market_cap": 14887612416,
         "performance": 1.62
-      },
-      {
-        "ticker": "ON",
-        "sector": "Technology",
-        "industry": "Semiconductors",
-        "market_cap": 19675740160,
-        "performance": -5.83
       },
       {
         "ticker": "OKE",
@@ -13091,13 +13033,6 @@
         "industry": "REIT - Diversified",
         "market_cap": 35275522048,
         "performance": 1.78
-      },
-      {
-        "ticker": "V",
-        "sector": "Financial Services",
-        "industry": "Credit Services",
-        "market_cap": 658075680768,
-        "performance": -1.57
       },
       {
         "ticker": "VST",
@@ -15344,13 +15279,6 @@
         "performance": 0.41
       },
       {
-        "ticker": "L",
-        "sector": "Financial Services",
-        "industry": "Insurance - Property & Casualty",
-        "market_cap": 20103727104,
-        "performance": -0.75
-      },
-      {
         "ticker": "LOW",
         "sector": "Consumer Cyclical",
         "industry": "Home Improvement Retail",
@@ -15769,13 +15697,6 @@
         "industry": "Advertising Agencies",
         "market_cap": 14887612416,
         "performance": -0.45
-      },
-      {
-        "ticker": "ON",
-        "sector": "Technology",
-        "industry": "Semiconductors",
-        "market_cap": 19675740160,
-        "performance": -0.31
       },
       {
         "ticker": "OKE",
@@ -16616,13 +16537,6 @@
         "industry": "REIT - Diversified",
         "market_cap": 35275522048,
         "performance": -0.24
-      },
-      {
-        "ticker": "V",
-        "sector": "Financial Services",
-        "industry": "Credit Services",
-        "market_cap": 658075680768,
-        "performance": -0.11
       },
       {
         "ticker": "VST",
@@ -21857,13 +21771,6 @@
         "performance": 0.41
       },
       {
-        "ticker": "L",
-        "sector": "Financial Services",
-        "industry": "Insurance - Property & Casualty",
-        "market_cap": 20103727104,
-        "performance": -0.75
-      },
-      {
         "ticker": "LOW",
         "sector": "Consumer Cyclical",
         "industry": "Home Improvement Retail",
@@ -22282,13 +22189,6 @@
         "industry": "Advertising Agencies",
         "market_cap": 14887612416,
         "performance": -0.45
-      },
-      {
-        "ticker": "ON",
-        "sector": "Technology",
-        "industry": "Semiconductors",
-        "market_cap": 19675740160,
-        "performance": -0.31
       },
       {
         "ticker": "OKE",
@@ -23129,13 +23029,6 @@
         "industry": "REIT - Diversified",
         "market_cap": 35275522048,
         "performance": -0.24
-      },
-      {
-        "ticker": "V",
-        "sector": "Financial Services",
-        "industry": "Credit Services",
-        "market_cap": 658075680768,
-        "performance": -0.11
       },
       {
         "ticker": "VST",
@@ -25426,13 +25319,6 @@
         "performance": 3.08
       },
       {
-        "ticker": "L",
-        "sector": "Financial Services",
-        "industry": "Insurance - Property & Casualty",
-        "market_cap": 20103727104,
-        "performance": 0.94
-      },
-      {
         "ticker": "LOW",
         "sector": "Consumer Cyclical",
         "industry": "Home Improvement Retail",
@@ -25851,13 +25737,6 @@
         "industry": "Advertising Agencies",
         "market_cap": 14887612416,
         "performance": -2.65
-      },
-      {
-        "ticker": "ON",
-        "sector": "Technology",
-        "industry": "Semiconductors",
-        "market_cap": 19675740160,
-        "performance": -1.58
       },
       {
         "ticker": "OKE",
@@ -26698,13 +26577,6 @@
         "industry": "REIT - Diversified",
         "market_cap": 35275522048,
         "performance": -0.69
-      },
-      {
-        "ticker": "V",
-        "sector": "Financial Services",
-        "industry": "Credit Services",
-        "market_cap": 658075680768,
-        "performance": -0.95
       },
       {
         "ticker": "VST",
@@ -28995,13 +28867,6 @@
         "performance": 8.95
       },
       {
-        "ticker": "L",
-        "sector": "Financial Services",
-        "industry": "Insurance - Property & Casualty",
-        "market_cap": 20103727104,
-        "performance": 2.09
-      },
-      {
         "ticker": "LOW",
         "sector": "Consumer Cyclical",
         "industry": "Home Improvement Retail",
@@ -29420,13 +29285,6 @@
         "industry": "Advertising Agencies",
         "market_cap": 14887612416,
         "performance": 1.62
-      },
-      {
-        "ticker": "ON",
-        "sector": "Technology",
-        "industry": "Semiconductors",
-        "market_cap": 19675740160,
-        "performance": -5.83
       },
       {
         "ticker": "OKE",
@@ -30267,13 +30125,6 @@
         "industry": "REIT - Diversified",
         "market_cap": 35275522048,
         "performance": 1.78
-      },
-      {
-        "ticker": "V",
-        "sector": "Financial Services",
-        "industry": "Credit Services",
-        "market_cap": 658075680768,
-        "performance": -1.57
       },
       {
         "ticker": "VST",

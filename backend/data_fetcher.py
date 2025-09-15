@@ -335,8 +335,14 @@ class MarketDataFetcher:
                     if not time_str or time_str == '-':
                         continue
 
+                    # Handle "24:00" as next day's "00:00"
+                    date_offset = timedelta(days=0)
+                    if time_str == "24:00":
+                        time_str = "00:00"
+                        date_offset = timedelta(days=1)
+
                     full_date_str = f"{dt_now_jst.year}/{current_date_str.split('(')[0]} {time_str}"
-                    tdatetime = datetime.strptime(full_date_str, '%Y/%m/%d %H:%M')
+                    tdatetime = datetime.strptime(full_date_str, '%Y/%m/%d %H:%M') + date_offset
                     tdatetime_aware = tdatetime.replace(tzinfo=jst)
 
                     if not (dt_now_jst - timedelta(hours=2) < tdatetime_aware < dt_now_jst + timedelta(hours=26)):
