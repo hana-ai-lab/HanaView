@@ -330,8 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .style("pointer-events", "none");
 
         // Dynamically adjust font size based on tile width
-        const tickerFontSize = Math.max(10, Math.min(tileWidth / 3, 24));
-        const perfFontSize = Math.max(8, Math.min(tileWidth / 4, 18));
+        const tickerFontSize = Math.max(10, Math.min(tileWidth / 3, 24)) * 2;
+        const perfFontSize = Math.max(8, Math.min(tileWidth / 4, 18)) * 2;
 
         text.append("tspan")
             .attr("class", "ticker-label")
