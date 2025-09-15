@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         heatmapWrapper.innerHTML = `<h2 class="heatmap-main-title">${title}</h2>`;
         const width = 1000, height = 600;
         const svg = d3.create("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "auto").style("font-family", "sans-serif");
-        const root = d3.hierarchy(d3.group(heatmapData.stocks, d => d.sector, d => d.industry)).sum(d => (d && d.market_cap) ? d.market_cap : 0).sort((a, b) => b.value - a.value);
+        const root = d3.hierarchy(d3.group(heatmapData.stocks, d => d.sector, d => d.industry)).sum(d => (d && d.market_cap > 0) ? Math.log(d.market_cap) : 0).sort((a, b) => b.value - a.value);
         d3.treemap().size([width, height]).paddingTop(28).paddingInner(3).round(true)(root);
         const tooltip = d3.select("body").append("div").attr("class", "heatmap-tooltip").style("opacity", 0);
         const node = svg.selectAll("g").data(root.descendants()).join("g").attr("transform", d => `translate(${d.x0},${d.y0})`);
