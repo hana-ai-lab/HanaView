@@ -304,8 +304,7 @@ body {
 }
 
 .news-summary-body {
-    position: relative;
-    padding-bottom: 80px; /* Space for the image */
+    overflow: auto; /* Clear the float */
 }
 
 .news-summary-body p {
@@ -314,9 +313,8 @@ body {
 }
 
 .summary-image {
-    position: absolute;
-    bottom: 0;
-    right: 0;
+    float: right;
+    margin: 0 0 10px 10px;
     height: 100px;
     width: auto;
 }
