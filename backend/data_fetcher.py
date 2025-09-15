@@ -826,26 +826,34 @@ class MarketDataFetcher:
         vix_history_str = format_history(vix_history)
         t_note_history_str = format_history(t_note_history)
 
-        prompt = f"""以下の市場データを基に、日本の個人投資家向けに本日の米国市場の状況を150字程度で簡潔に解説してください。
+        prompt = f"""あなたはプロの金融アナリストです。以下の市場データを分析し、特にこの1ヶ月間の各指標の「推移」から読み取れる市場センチメントの変化を、日本の個人投資家向けに300字程度で分かりやすく解説してください。
 
+        # 分析対象データ
         - **Fear & Greed Index**:
-          - 現在: {fg_now_val} ({fg_now_cat})
-          - 1週間前: {fg_week_val} ({fg_week_cat})
           - 1ヶ月前: {fg_month_val} ({fg_month_cat})
+          - 1週間前: {fg_week_val} ({fg_week_cat})
+          - 現在: {fg_now_val} ({fg_now_cat})
 
-        - **VIX指数 (直近1ヶ月)**:
+        - **VIX指数 (恐怖指数) - 過去1ヶ月の終値の推移**:
           - {vix_history_str}
 
-        - **米国10年債金利 (直近1ヶ月)**:
+        - **米国10年債金利 - 過去1ヶ月の終値の推移**:
           - {t_note_history_str}
 
+        # 解説のポイント
+        1.  **Fear & Greed Indexの推移**: 1ヶ月前から現在にかけて、投資家心理が「恐怖」と「強欲」のどちらの方向へ、どの程度変化したかを具体的に指摘してください。
+        2.  **VIX指数の動向**: VIX指数がこの1ヶ月で上昇傾向か、下降傾向か、あるいは特定のレンジで安定しているかを述べ、それが市場の不確実性やリスク許容度について何を示唆しているかを説明してください。
+        3.  **10年債金利の動向**: 金利の推移が株式市場（特にハイテク株など金利に敏感なセクター）にどのような影響を与えている可能性があるかを分析してください。
+        4.  **総合的な結論**: これら3つの指標の関連性を考慮し、現在の市場がどのような状況にあるのか（例：「リスクオンムードが高まっている」「警戒感が強い」など）を結論付けてください。
+
+        # 出力形式
         必ず以下のJSON形式で出力してください：
         {{"response": "ここに解説を記述"}}
 
         重要：出力は有効なJSONである必要があります。"""
 
         try:
-            response_json = self._call_openai_api(prompt, max_completion_tokens=400) # Increased token limit
+            response_json = self._call_openai_api(prompt, max_completion_tokens=500)
             self.data['market']['ai_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
         except Exception as e:
             logger.error(f"Failed to generate and parse AI commentary: {e}")
