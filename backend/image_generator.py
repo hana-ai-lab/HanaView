@@ -30,8 +30,15 @@ def generate_fear_greed_chart(data):
     # ===== ゲージ描画 =====
     value = data["center_value"]
     current_category = get_fear_greed_category(value)
-    labels = ["EXTREME FEAR", "FEAR", "NEUTRAL", "GREED", "EXTREME GREED"]
-    n = len(labels)
+
+    # Define segments with their value ranges, angles, and category name
+    segments = [
+        {"label": "EXTREME FEAR",  "category": "Extreme Fear",  "angle": (135, 180)},
+        {"label": "FEAR",          "category": "Fear",          "angle": (99, 135)},
+        {"label": "NEUTRAL",       "category": "Neutral",       "angle": (81, 99)},
+        {"label": "GREED",         "category": "Greed",         "angle": (45, 81)},
+        {"label": "EXTREME GREED", "category": "Extreme Greed", "angle": (0, 45)}
+    ]
     start_angle = 180
     end_angle = 0
     radius_outer = 1.0
@@ -42,15 +49,12 @@ def generate_fear_greed_chart(data):
     ax.set_ylim(-1.3, 1.5)
     ax.axis('off')
 
-    angle_span = (start_angle - end_angle) / n
-    for i, label in enumerate(labels):
-        a1 = start_angle - i * angle_span
-        a2 = a1 - angle_span
+    for segment in segments:
+        a2, a1 = segment["angle"]  # start and end angles for the wedge
 
-        current_segment_index = math.floor((value / 100) * n)
-        if current_segment_index == 5: current_segment_index = 4
+        is_active = (current_category == segment["category"])
 
-        if i == current_segment_index:
+        if is_active:
             # Use the new color scheme for the active segment
             face, _ = status_colors.get(current_category, ("#e0e0e0", "black"))
             edge = 'black'
@@ -63,10 +67,11 @@ def generate_fear_greed_chart(data):
         wedge = Wedge((0,0), radius_outer, a2, a1, width=radius_outer-radius_inner,
                       facecolor=face, edgecolor=edge, linewidth=lw, zorder=1)
         ax.add_patch(wedge)
-        mid_angle = math.radians((a1+a2)/2)
+
+        mid_angle = math.radians((a1 + a2) / 2)
         lx = (radius_outer + 0.15) * math.cos(mid_angle)
         ly = (radius_outer + 0.15) * math.sin(mid_angle)
-        ax.text(lx, ly, label, ha='center', va='center', fontsize=11, fontweight='bold', color='#555555')
+        ax.text(lx, ly, segment["label"], ha='center', va='center', fontsize=11, fontweight='bold', color='#555555')
 
     # 目盛り（数字と点、5刻み）
     for pct in range(0, 101, 5):
