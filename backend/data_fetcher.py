@@ -537,6 +537,17 @@ class MarketDataFetcher:
             self.data['sector_etf_heatmap_1w'] = sector_etf_heatmaps.get('1w', {"etfs": []})
             self.data['sector_etf_heatmap_1m'] = sector_etf_heatmaps.get('1m', {"etfs": []})
 
+            # Create combined S&P 500 and ETF heatmaps
+            logger.info("Creating combined S&P 500 and Sector ETF heatmap data...")
+            for period in ['1d', '1w', '1m']:
+                sp500_stocks = self.data.get(f'sp500_heatmap_{period}', {}).get('stocks', [])
+                etfs = self.data.get(f'sector_etf_heatmap_{period}', {}).get('etfs', [])
+
+                # The frontend only needs ticker and performance.
+                # No need to add a 'type' field as they will be rendered identically.
+                combined_items = sp500_stocks + etfs
+                self.data[f'sp500_combined_heatmap_{period}'] = {"items": combined_items}
+
         except Exception as e:
             logger.error(f"Error during heatmap data fetching: {e}")
             error_payload = {"stocks": [], "error": f"[E006] {ERROR_CODES['E006']}: {e}"}
@@ -552,6 +563,9 @@ class MarketDataFetcher:
             self.data['sector_etf_heatmap_1d'] = etf_error_payload
             self.data['sector_etf_heatmap_1w'] = etf_error_payload
             self.data['sector_etf_heatmap_1m'] = etf_error_payload
+            self.data['sp500_combined_heatmap_1d'] = {"items": []}
+            self.data['sp500_combined_heatmap_1w'] = {"items": []}
+            self.data['sp500_combined_heatmap_1m'] = {"items": []}
 
     def _fetch_stock_performance_for_heatmap(self, tickers, batch_size=30):
         """改善版：レート制限対策を含むヒートマップ用データ取得（業種・フラット構造対応）。1日、1週間、1ヶ月のパフォーマンスを計算する。"""
