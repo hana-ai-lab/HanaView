@@ -225,6 +225,15 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = `<div class="card"><div class="heatmap-error">No data for ${title}.</div></div>`;
             return;
         }
+
+        // --- Filter and sort data ---
+        // Create a copy of the array to avoid modifying the original data
+        let stocks = [...heatmapData.stocks];
+
+        // Sort by market_cap in descending order and take the top 30
+        stocks.sort((a, b) => b.market_cap - a.market_cap);
+        stocks = stocks.slice(0, 30);
+
         const card = document.createElement('div');
         card.className = 'card';
         const heatmapWrapper = document.createElement('div');
@@ -232,8 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
         heatmapWrapper.innerHTML = `<h2 class="heatmap-main-title">${title}</h2>`;
         const width = 1000, height = 600;
         const svg = d3.create("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "auto").style("font-family", "sans-serif");
-        const root = d3.hierarchy(d3.group(heatmapData.stocks, d => d.sector, d => d.industry)).sum(d => (d && d.market_cap > 0) ? Math.log(d.market_cap) : 0).sort((a, b) => b.value - a.value);
-        d3.treemap().size([width, height]).paddingTop(28).paddingInner(3).round(true)(root);
+        const root = d3.hierarchy(d3.group(stocks, d => d.sector, d => d.industry)).sum(d => (d && d.market_cap > 0) ? Math.log(d.market_cap) : 0).sort((a, b) => b.value - a.value);
+        d3.treemap().size([width, height]).paddingTop(28).paddingInner(1).round(true)(root);
         const tooltip = d3.select("body").append("div").attr("class", "heatmap-tooltip").style("opacity", 0);
         const node = svg.selectAll("g").data(root.descendants()).join("g").attr("transform", d => `translate(${d.x0},${d.y0})`);
         
