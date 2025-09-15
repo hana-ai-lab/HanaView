@@ -222,15 +222,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!container) return;
         container.innerHTML = '';
 
-        // Handle different possible data keys ('items' or 'stocks') and filter for top 30 if it's a stock heatmap
         let items = heatmapData?.items || heatmapData?.stocks || [];
-        if (heatmapData?.stocks) {
+        const isSP500 = title.includes('SP500');
+        let etfStartIndex = -1;
+
+        // Special handling for SP500: filter top 30 stocks and combine with ETFs
+        if (isSP500 && items.length > 0) {
+            const stocks = items.filter(d => d.market_cap);
+            const etfs = items.filter(d => !d.market_cap);
+
+            stocks.sort((a, b) => b.market_cap - a.market_cap);
+            const top30Stocks = stocks.slice(0, 30);
+
+            items = [...top30Stocks, ...etfs];
+            etfStartIndex = top30Stocks.length; // The index where ETFs start
+        } else if (heatmapData?.stocks) { // For Nasdaq
             items.sort((a, b) => b.market_cap - a.market_cap);
-            items = items.slice(0, 30);
         }
 
         if (items.length === 0) {
-            // Do not show an error card if data is missing, just leave it blank.
             return;
         }
 
@@ -241,19 +251,33 @@ document.addEventListener('DOMContentLoaded', () => {
         heatmapWrapper.innerHTML = `<h2 class="heatmap-main-title">${title}</h2>`;
 
         const numItems = items.length;
-        // Adjust items per row for better layout with ~41 items (30 stocks + 11 ETFs)
-        const itemsPerRow = (numItems > 30) ? 7 : 6;
-        const numRows = Math.ceil(numItems / itemsPerRow);
+        const itemsPerRow = isSP500 ? 7 : 6;
 
         const margin = { top: 10, right: 10, bottom: 10, left: 10 };
         const containerWidth = container.clientWidth || 1000;
         const width = containerWidth - margin.left - margin.right;
-        const tileWidth = (width - (itemsPerRow - 1) * 5) / itemsPerRow; // 5px padding
-        const tileHeight = 60;
-        const height = numRows * (tileHeight + 5) - 5;
+
+        const tilePadding = 5;
+        const tileWidth = (width - (itemsPerRow - 1) * tilePadding) / itemsPerRow;
+        const tileHeight = tileWidth * 2; // Aspect ratio 2:1
+        const etfGap = isSP500 ? tileHeight / 2 : 0; // Gap for SP500 chart
+
+        // Calculate total height dynamically
+        let totalHeight = 0;
+        const rowHeights = [];
+        for (let i = 0; i < numItems; i++) {
+            const row = Math.floor(i / itemsPerRow);
+            if (!rowHeights[row]) {
+                rowHeights[row] = tileHeight;
+                if (isSP500 && etfStartIndex !== -1 && i === etfStartIndex && (i % itemsPerRow === 0)) {
+                   totalHeight += etfGap;
+                }
+                totalHeight += (row > 0 ? tilePadding : 0) + tileHeight;
+            }
+        }
 
         const svg = d3.create("svg")
-            .attr("viewBox", `0 0 ${containerWidth} ${height + margin.top + margin.bottom}`)
+            .attr("viewBox", `0 0 ${containerWidth} ${totalHeight + margin.top + margin.bottom}`)
             .attr("width", "100%")
             .attr("height", "auto")
             .style("font-family", "sans-serif");
@@ -270,11 +294,27 @@ document.addEventListener('DOMContentLoaded', () => {
             .enter()
             .append("g")
             .attr("transform", (d, i) => {
-                const col = i % itemsPerRow;
                 const row = Math.floor(i / itemsPerRow);
-                const x = col * (tileWidth + 5);
-                const y = row * (tileHeight + 5);
-                return `translate(${x},${y})`;
+                const col = i % itemsPerRow;
+
+                let yOffset = 0;
+                for(let j = 0; j < row; j++) {
+                    yOffset += rowHeights[j] + tilePadding;
+                }
+
+                if (isSP500 && etfStartIndex !== -1 && i >= etfStartIndex) {
+                    // Check if this is the first row of ETFs
+                    if (Math.floor(etfStartIndex / itemsPerRow) === row) {
+                         if(col === 0){ // Add gap only once per row
+                             yOffset += etfGap;
+                         }
+                    } else if (Math.floor(etfStartIndex / itemsPerRow) < row) {
+                         yOffset += etfGap;
+                    }
+                }
+
+                const x = col * (tileWidth + tilePadding);
+                return `translate(${x},${yOffset})`;
             });
 
         nodes.append("rect")
@@ -296,18 +336,19 @@ document.addEventListener('DOMContentLoaded', () => {
             .attr("x", tileWidth / 2)
             .attr("y", tileHeight / 2)
             .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "central");
+            .attr("dominant-baseline", "central")
+            .style("pointer-events", "none");
 
         text.append("tspan")
             .attr("class", "ticker-label")
-            .style("font-size", "16px")
+            .style("font-size", "32px") // Double font size
             .text(d => d.ticker);
 
         text.append("tspan")
             .attr("class", "performance-label")
             .attr("x", tileWidth / 2)
             .attr("dy", "1.2em")
-            .style("font-size", "12px")
+            .style("font-size", "24px") // Double font size
             .text(d => `${d.performance.toFixed(2)}%`);
 
         heatmapWrapper.appendChild(svg.node());
