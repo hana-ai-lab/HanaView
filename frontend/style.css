@@ -339,11 +339,11 @@ body {
     display: flex;
     align-items: flex-start;
     gap: 15px;
-    background-color: #EAF4FF; /* Light blue background */
+    background-color: #FFFFFF;
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
-    border: none;
+    border-left: 5px solid;
 }
 
 .topic-number-container {
@@ -354,8 +354,7 @@ body {
     width: 36px;
     height: 36px;
     border-radius: 8px;
-    background: linear-gradient(135deg, #FFD700, #FFA500); /* Gold to Orange gradient */
-    color: white;
+    color: black;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -380,6 +379,32 @@ body {
     line-height: 1.7;
     color: #333;
 }
+
+/* Topic-specific overrides */
+.topic-1 {
+    border-left-color: #E2008B;
+}
+
+.topic-1 .topic-title {
+    color: #E2008B;
+}
+
+.topic-1 .topic-number {
+    background-color: gold;
+}
+
+.topic-2, .topic-3 {
+    border-left-color: #00D8D8;
+}
+
+.topic-2 .topic-title, .topic-3 .topic-title {
+    color: #00D8D8;
+}
+
+.topic-2 .topic-number, .topic-3 .topic-number {
+    background-color: silver;
+}
+
 
 /* Override old news styles */
 .news-summary h3, .main-topics-container h3 {

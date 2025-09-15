@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             newsData.topics.forEach((topic, index) => {
                 const topicBox = document.createElement('div');
-                topicBox.className = 'topic-box';
+                topicBox.className = `topic-box topic-${index + 1}`;
 
                 let topicContent = '';
                 if (topic.analysis && topic.url) {
