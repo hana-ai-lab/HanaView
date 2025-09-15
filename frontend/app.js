@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const heatmapWrapper = document.createElement('div');
         heatmapWrapper.className = 'heatmap-wrapper';
         heatmapWrapper.innerHTML = `<h2 class="heatmap-main-title">${title}</h2>`;
-        const width = 1000, height = 600;
+        const width = 1000, height = 900;
         const svg = d3.create("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("width", "100%").attr("height", "auto").style("font-family", "sans-serif");
         const root = d3.hierarchy(d3.group(stocks, d => d.sector, d => d.industry)).sum(d => (d && d.market_cap > 0) ? Math.log(d.market_cap) : 0).sort((a, b) => b.value - a.value);
         d3.treemap().size([width, height]).paddingTop(28).paddingInner(1).round(true)(root);
@@ -258,16 +258,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (d.depth === 1 && groupArea > minAreaForSector) {
                 // Sector label
-                const fontSize = Math.min(16, Math.max(12, groupWidth / 15));
+                const fontSize = Math.min(24, Math.max(18, groupWidth / 15));
                 d3.select(this).append("text")
                     .attr("class", "sector-label")
                     .attr("x", 4)
-                    .attr("y", 20)
+                    .attr("y", 30)
                     .style("font-size", `${fontSize}px`)
                     .text(d.data[0]);
             } else if (d.depth === 2 && groupArea > minAreaForIndustry) {
                 // Industry label - with truncation if needed
-                const fontSize = Math.min(13, Math.max(10, groupWidth / 20));
+                const fontSize = Math.min(19.5, Math.max(15, groupWidth / 20));
                 const maxChars = Math.floor(groupWidth / 7); // Approximate character limit based on width
                 let labelText = d.data[0];
                 
@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     d3.select(this).append("text")
                         .attr("class", "industry-label")
                         .attr("x", 4)
-                        .attr("y", 20)
+                        .attr("y", 30)
                         .style("font-size", `${fontSize}px`)
                         .text(labelText);
                 }
@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Calculate font size based on tile dimensions
                 // Use the smaller dimension to ensure text fits
                 const minDimension = Math.min(tileWidth, tileHeight);
-                let fontSize = Math.max(8, Math.min(16, minDimension / 4));
+                let fontSize = Math.max(12, Math.min(24, minDimension / 4));
                 
                 // Add clipPath for text overflow
                 selection.append("clipPath")
