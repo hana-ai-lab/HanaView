@@ -346,6 +346,97 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(card);
     }
 
+    function renderSimpleHeatmap(container, title, heatmapData) {
+        if (!container) return;
+        container.innerHTML = '';
+        if (!heatmapData || !heatmapData.etfs || heatmapData.etfs.length === 0) {
+            // Do not show an error card if data is missing, just leave it blank.
+            // container.innerHTML = `<div class="card"><div class="heatmap-error">No data for ${title}.</div></div>`;
+            return;
+        }
+
+        const etfs = heatmapData.etfs;
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        const heatmapWrapper = document.createElement('div');
+        heatmapWrapper.className = 'heatmap-wrapper'; // Reuse styling
+        heatmapWrapper.innerHTML = `<h2 class="heatmap-main-title">${title}</h2>`;
+
+        const numItems = etfs.length;
+        const itemsPerRow = 6;
+        const numRows = Math.ceil(numItems / itemsPerRow);
+
+        const margin = { top: 10, right: 10, bottom: 10, left: 10 };
+        const containerWidth = container.clientWidth || 1000;
+        const width = containerWidth - margin.left - margin.right;
+        const tileWidth = (width - (itemsPerRow - 1) * 5) / itemsPerRow; // 5px padding
+        const tileHeight = 60; // Fixed height for a cleaner look
+        const height = numRows * (tileHeight + 5) - 5; // 5px padding
+
+        const svg = d3.create("svg")
+            .attr("viewBox", `0 0 ${containerWidth} ${height + margin.top + margin.bottom}`)
+            .attr("width", "100%")
+            .attr("height", "auto")
+            .style("font-family", "sans-serif");
+
+        const g = svg.append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        const tooltip = d3.select("body").append("div")
+            .attr("class", "heatmap-tooltip")
+            .style("opacity", 0);
+
+        const nodes = g.selectAll("g")
+            .data(etfs)
+            .enter()
+            .append("g")
+            .attr("transform", (d, i) => {
+                const col = i % itemsPerRow;
+                const row = Math.floor(i / itemsPerRow);
+                const x = col * (tileWidth + 5);
+                const y = row * (tileHeight + 5);
+                return `translate(${x},${y})`;
+            });
+
+        nodes.append("rect")
+            .attr("width", tileWidth)
+            .attr("height", tileHeight)
+            .attr("fill", d => getPerformanceColor(d.performance))
+            .on("mouseover", (event, d) => {
+                tooltip.transition().duration(200).style("opacity", .9);
+                tooltip.html(`<strong>${d.ticker}</strong><br/>Perf: ${d.performance.toFixed(2)}%`)
+                    .style("left", (event.pageX + 5) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", () => {
+                tooltip.transition().duration(500).style("opacity", 0);
+            });
+
+        const text = nodes.append("text")
+            .attr("class", "stock-label") // Reuse styling
+            .attr("x", tileWidth / 2)
+            .attr("y", tileHeight / 2)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "central");
+
+        text.append("tspan")
+            .attr("class", "ticker-label")
+            .style("font-size", "16px")
+            .text(d => d.ticker);
+
+        text.append("tspan")
+            .attr("class", "performance-label")
+            .attr("x", tileWidth / 2)
+            .attr("dy", "1.2em")
+            .style("font-size", "12px")
+            .text(d => `${d.performance.toFixed(2)}%`);
+
+        heatmapWrapper.appendChild(svg.node());
+        card.appendChild(heatmapWrapper);
+        container.appendChild(card);
+    }
+
     function renderIndicators(container, indicatorsData, lastUpdated) {
         if (!container) return;
         container.innerHTML = ''; // Clear previous content
@@ -570,6 +661,12 @@ document.addEventListener('DOMContentLoaded', () => {
             renderHeatmap(document.getElementById('sp500-heatmap-1d'), 'SP500 (1-Day)', data.sp500_heatmap_1d);
             renderHeatmap(document.getElementById('sp500-heatmap-1w'), 'SP500 (1-Week)', data.sp500_heatmap_1w);
             renderHeatmap(document.getElementById('sp500-heatmap-1m'), 'SP500 (1-Month)', data.sp500_heatmap_1m);
+
+            // Render Sector ETF Heatmaps
+            renderSimpleHeatmap(document.getElementById('sector-etf-heatmap-1d'), 'Sector ETFs (1-Day)', data.sector_etf_heatmap_1d);
+            renderSimpleHeatmap(document.getElementById('sector-etf-heatmap-1w'), 'Sector ETFs (1-Week)', data.sector_etf_heatmap_1w);
+            renderSimpleHeatmap(document.getElementById('sector-etf-heatmap-1m'), 'Sector ETFs (1-Month)', data.sector_etf_heatmap_1m);
+
             renderHeatmapCommentary(document.getElementById('sp500-commentary'), data.sp500_heatmap?.ai_commentary);
 
             renderIndicators(document.getElementById('indicators-content'), data.indicators, data.last_updated);

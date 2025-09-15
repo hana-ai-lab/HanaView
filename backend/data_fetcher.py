@@ -529,6 +529,14 @@ class MarketDataFetcher:
             # For backward compatibility with AI commentary
             self.data['nasdaq_heatmap'] = self.data.get('nasdaq_heatmap_1d', {"stocks": []})
 
+            # Fetch Sector ETF data
+            sector_etf_tickers = ["XLK", "XLY", "XLV", "XLP", "XLB", "XLU", "XLI", "XLC", "XLRE", "XLF", "XLE"]
+            logger.info(f"Fetching data for {len(sector_etf_tickers)} sector ETFs.")
+            sector_etf_heatmaps = self._fetch_etf_performance_for_heatmap(sector_etf_tickers)
+            self.data['sector_etf_heatmap_1d'] = sector_etf_heatmaps.get('1d', {"etfs": []})
+            self.data['sector_etf_heatmap_1w'] = sector_etf_heatmaps.get('1w', {"etfs": []})
+            self.data['sector_etf_heatmap_1m'] = sector_etf_heatmaps.get('1m', {"etfs": []})
+
         except Exception as e:
             logger.error(f"Error during heatmap data fetching: {e}")
             error_payload = {"stocks": [], "error": f"[E006] {ERROR_CODES['E006']}: {e}"}
@@ -540,6 +548,10 @@ class MarketDataFetcher:
             self.data['nasdaq_heatmap_1m'] = error_payload
             self.data['sp500_heatmap'] = error_payload
             self.data['nasdaq_heatmap'] = error_payload
+            etf_error_payload = {"etfs": [], "error": f"[E006] {ERROR_CODES['E006']}: {e}"}
+            self.data['sector_etf_heatmap_1d'] = etf_error_payload
+            self.data['sector_etf_heatmap_1w'] = etf_error_payload
+            self.data['sector_etf_heatmap_1m'] = etf_error_payload
 
     def _fetch_stock_performance_for_heatmap(self, tickers, batch_size=30):
         """改善版：レート制限対策を含むヒートマップ用データ取得（業種・フラット構造対応）。1日、1週間、1ヶ月のパフォーマンスを計算する。"""
@@ -612,6 +624,65 @@ class MarketDataFetcher:
             if i + batch_size < len(tickers):
                 logger.info(f"Processed {min(i + batch_size, len(tickers))}/{len(tickers)} tickers, waiting...")
                 time.sleep(3)
+
+        return heatmaps
+
+    def _fetch_etf_performance_for_heatmap(self, tickers):
+        """Fetches 1-day, 1-week, and 1-month performance for a list of ETFs."""
+        if not tickers:
+            return {"1d": {"etfs": []}, "1w": {"etfs": []}, "1m": {"etfs": []}}
+
+        heatmaps = {
+            "1d": {"etfs": []},
+            "1w": {"etfs": []},
+            "1m": {"etfs": []}
+        }
+
+        for ticker_symbol in tickers:
+            try:
+                ticker_obj = yf.Ticker(ticker_symbol, session=self.yf_session)
+                # 1ヶ月分のデータを取得（約22営業日 + 余裕）
+                hist = ticker_obj.history(period="35d")
+
+                if hist.empty:
+                    logger.warning(f"No history for ETF {ticker_symbol}, skipping.")
+                    continue
+
+                base_etf_data = {
+                    "ticker": ticker_symbol,
+                }
+
+                latest_close = hist['Close'].iloc[-1]
+
+                # 1-Day Performance
+                if len(hist) >= 2 and hist['Close'].iloc[-2] != 0:
+                    perf_1d = ((latest_close - hist['Close'].iloc[-2]) / hist['Close'].iloc[-2]) * 100
+                    etf_1d = base_etf_data.copy()
+                    etf_1d["performance"] = round(perf_1d, 2)
+                    heatmaps["1d"]["etfs"].append(etf_1d)
+
+                # 1-Week Performance (5 trading days)
+                if len(hist) >= 6 and hist['Close'].iloc[-6] != 0:
+                    perf_1w = ((latest_close - hist['Close'].iloc[-6]) / hist['Close'].iloc[-6]) * 100
+                    etf_1w = base_etf_data.copy()
+                    etf_1w["performance"] = round(perf_1w, 2)
+                    heatmaps["1w"]["etfs"].append(etf_1w)
+
+                # 1-Month Performance (20 trading days)
+                if len(hist) >= 21 and hist['Close'].iloc[-21] != 0:
+                    perf_1m = ((latest_close - hist['Close'].iloc[-21]) / hist['Close'].iloc[-21]) * 100
+                    etf_1m = base_etf_data.copy()
+                    etf_1m["performance"] = round(perf_1m, 2)
+                    heatmaps["1m"]["etfs"].append(etf_1m)
+
+            except Exception as e:
+                logger.error(f"Could not fetch data for ETF {ticker_symbol}: {e}")
+                continue
+
+        # Sort by ticker name
+        for period in heatmaps:
+            if 'etfs' in heatmaps[period]:
+                heatmaps[period]['etfs'].sort(key=lambda x: x['ticker'])
 
         return heatmaps
 
@@ -822,19 +893,6 @@ class MarketDataFetcher:
         """Generates AI commentary for heatmaps based on 1-day, 1-week, and 1-month performance."""
         logger.info("Generating heatmap AI commentary...")
 
-        def get_sector_performance(stocks):
-            if not stocks: return []
-            sector_perf = {}
-            sector_count = {}
-            for stock in stocks:
-                sector, perf = stock.get('sector', 'N/A'), stock.get('performance', 0)
-                if sector != 'N/A':
-                    sector_perf[sector] = sector_perf.get(sector, 0) + perf
-                    sector_count[sector] = sector_count.get(sector, 0) + 1
-            if not sector_count: return []
-            avg_sector_perf = {s: sector_perf[s] / sector_count[s] for s in sector_perf}
-            return sorted(avg_sector_perf.items(), key=lambda item: item[1], reverse=True)
-
         def get_stock_performance(stocks, count=5):
             if not stocks: return [], []
             # Ensure performance is a float for sorting
@@ -847,62 +905,90 @@ class MarketDataFetcher:
         for index_base_name in ['sp500', 'nasdaq']:
             try:
                 heatmap_1d = self.data.get(f'{index_base_name}_heatmap_1d', {})
-                heatmap_1w = self.data.get(f'{index_base_name}_heatmap_1w', {})
-                heatmap_1m = self.data.get(f'{index_base_name}_heatmap_1m', {})
-
                 if not heatmap_1d.get('stocks'):
                     logger.warning(f"No 1-day data for {index_base_name}, skipping AI commentary.")
                     self.data[f'{index_base_name}_heatmap']['ai_commentary'] = "データ不足のためヒートマップ解説をスキップしました。"
                     continue
 
-                # --- Gather Data ---
-                # Sector performance
-                sectors_1d = get_sector_performance(heatmap_1d.get('stocks', []))
-                sectors_1w = get_sector_performance(heatmap_1w.get('stocks', []))
-                sectors_1m = get_sector_performance(heatmap_1m.get('stocks', []))
-
-                top_3_1d = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sectors_1d[:3]]) if sectors_1d else "N/A"
-                bottom_3_1d = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sectors_1d[-3:]]) if sectors_1d else "N/A"
-                top_3_1w = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sectors_1w[:3]]) if sectors_1w else "N/A"
-                top_3_1m = ', '.join([f"{s[0]} ({s[1]:.2f}%)" for s in sectors_1m[:3]]) if sectors_1m else "N/A"
-
-                # Stock performance for 1d
                 top_5_stocks, bottom_5_stocks = get_stock_performance(heatmap_1d.get('stocks', []))
                 top_stocks_str = ', '.join([f"{s['ticker']} ({s['performance']:.2f}%)" for s in top_5_stocks]) if top_5_stocks else "N/A"
                 bottom_stocks_str = ', '.join([f"{s['ticker']} ({s['performance']:.2f}%)" for s in bottom_5_stocks]) if bottom_5_stocks else "N/A"
 
-                prompt = f"""
-                あなたはプロの金融アナリストです。以下の{index_base_name.upper()}のヒートマップデータを分析し、日本の個人投資家向けに、市場の状況を分かりやすく解説してください。
+                if index_base_name == 'sp500':
+                    # --- SP500: Use Sector ETF data ---
+                    etf_heatmap_1d = self.data.get('sector_etf_heatmap_1d', {}).get('etfs', [])
+                    etf_heatmap_1w = self.data.get('sector_etf_heatmap_1w', {}).get('etfs', [])
+                    etf_heatmap_1m = self.data.get('sector_etf_heatmap_1m', {}).get('etfs', [])
 
-                # データ
-                ## セクター別平均パフォーマンス
-                - **1日間**
-                  - 上位3セクター: {top_3_1d}
-                  - 下位3セクター: {bottom_3_1d}
-                - **1週間**
-                  - 上位3セクター: {top_3_1w}
-                - **1ヶ月**
-                  - 上位3セクター: {top_3_1m}
+                    if not etf_heatmap_1d:
+                        logger.warning("No Sector ETF data available for SP500 commentary.")
+                        self.data[f'{index_base_name}_heatmap']['ai_commentary'] = "セクターETFデータが不足しているため、ヒートマップ解説をスキップしました。"
+                        continue
 
-                ## 個別銘柄パフォーマンス (1日間)
-                - 上昇上位5銘柄: {top_stocks_str}
-                - 下落上位5銘柄: {bottom_stocks_str}
+                    etfs_1d_sorted = sorted(etf_heatmap_1d, key=lambda x: x.get('performance', 0), reverse=True)
+                    etfs_1w_sorted = sorted(etf_heatmap_1w, key=lambda x: x.get('performance', 0), reverse=True)
+                    etfs_1m_sorted = sorted(etf_heatmap_1m, key=lambda x: x.get('performance', 0), reverse=True)
 
-                # 指示
-                以下の3つの点を必ず含めて、250字〜300字程度で解説を作成してください。
+                    top_3_etfs_1d = ', '.join([f"{s['ticker']} ({s['performance']:.2f}%)" for s in etfs_1d_sorted[:3]]) if etfs_1d_sorted else "N/A"
+                    bottom_3_etfs_1d = ', '.join([f"{s['ticker']} ({s['performance']:.2f}%)" for s in etfs_1d_sorted[-3:]]) if etfs_1d_sorted else "N/A"
+                    top_3_etfs_1w = ', '.join([f"{s['ticker']} ({s['performance']:.2f}%)" for s in etfs_1w_sorted[:3]]) if etfs_1w_sorted else "N/A"
+                    top_3_etfs_1m = ', '.join([f"{s['ticker']} ({s['performance']:.2f}%)" for s in etfs_1m_sorted[:3]]) if etfs_1m_sorted else "N/A"
 
-                1.  **短期・中期トレンドの要約**: 1日、1週間、1ヶ月のデータから、現在の市場の短期的な勢いと中期的なトレンドを読み解いてください。
-                2.  **セクターローテーションの兆候**: 短期と中期のパフォーマンスを比較し、資金がどのセクターからどのセクターへ移動しているか（セクターローテーション）の兆候があれば指摘してください。例えば、「ハイテク株からエネルギー株へ資金が流れている可能性があります」のように記述します。
-                3.  **市場の牽引役**: 1日のパフォーマンスが特に良かった銘柄をいくつか挙げ、それらが属するセクターの動きと関連付けて、当日の相場をどの銘柄が牽引したかを説明してください。
+                    prompt = f"""
+                    あなたはプロの金融アナリストです。以下のS&P 500のヒートマップデータと、セクター別ETFのパフォーマンスを分析し、日本の個人投資家向けに、市場の状況を分かりやすく解説してください。
 
-                # 出力形式
-                必ず以下のJSON形式で出力してください：
-                {{
-                    "response": "ここに解説を記述"
-                }}
+                    # データ
+                    ## セクター別ETFパフォーマンス
+                    - **1日間**
+                      - 上位3セクターETF: {top_3_etfs_1d}
+                      - 下位3セクターETF: {bottom_3_etfs_1d}
+                    - **1週間**
+                      - 上位3セクターETF: {top_3_etfs_1w}
+                    - **1ヶ月**
+                      - 上位3セクターETF: {top_3_etfs_1m}
 
-                重要：出力は有効なJSONである必要があります。
-                """
+                    ## S&P 500 個別銘柄パフォーマンス (1日間)
+                    - 上昇上位5銘柄: {top_stocks_str}
+                    - 下落上位5銘柄: {bottom_stocks_str}
+
+                    # 指示
+                    以下の3つの点を必ず含めて、250字〜300字程度で解説を作成してください。
+
+                    1.  **短期・中期トレンドの要約**: セクターETFの1日、1週間、1ヶ月のデータから、現在の市場の短期的な勢いと中期的なトレンドを読み解いてください。
+                    2.  **セクターローテーションの兆候**: 短期と中期のパフォーマンスを比較し、資金がどのセクターからどのセクターへ移動しているか（セクターローテーション）の兆候をETFの動きから指摘してください。例えば、「ハイテク(XLK)からエネルギー(XLE)へ資金が流れている可能性があります」のように記述します。
+                    3.  **市場の牽引役**: 1日のパフォーマンスが特に良かったS&P 500の個別銘柄をいくつか挙げ、それらが属するセクターのETFの動きと関連付けて、当日の相場をどのセクター・銘柄が牽引したかを説明してください。
+
+                    # 出力形式
+                    必ず以下のJSON形式で出力してください：
+                    {{
+                        "response": "ここに解説を記述"
+                    }}
+
+                    重要：出力は有効なJSONである必要があります。
+                    """
+                else: # index_base_name == 'nasdaq'
+                    prompt = f"""
+                    あなたはプロの金融アナリストです。以下の{index_base_name.upper()}のヒートマップデータを分析し、日本の個人投資家向けに、市場の状況を分かりやすく解説してください。
+
+                    # データ
+                    ## 個別銘柄パフォーマンス (1日間)
+                    - 上昇上位5銘柄: {top_stocks_str}
+                    - 下落上位5銘柄: {bottom_stocks_str}
+
+                    # 指示
+                    以下の2つの点を必ず含めて、200字〜250字程度で解説を作成してください。
+
+                    1.  **市場の概観**: 上昇・下落が目立った銘柄を基に、当日の{index_base_name.upper()}市場がどのようなテーマで動いたかを要約してください。
+                    2.  **注目銘柄**: 特にパフォーマンスが良かった、あるいは悪かった銘柄をいくつか挙げ、その背景にどのようなニュースや要因があった可能性があるかについて、あなたの専門知識を基に推測を加えてください。
+
+                    # 出力形式
+                    必ず以下のJSON形式で出力してください：
+                    {{
+                        "response": "ここに解説を記述"
+                    }}
+
+                    重要：出力は有効なJSONである必要があります。
+                    """
 
                 response_json = self._call_openai_api(prompt, max_completion_tokens=700)
                 commentary = response_json.get('response', 'AI解説の生成に失敗しました。')
