@@ -252,13 +252,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getPerformanceColor(performance) {
-        if (performance >= 3) return '#00c853';
-        if (performance > 1) return '#2e7d32';
-        if (performance > 0) return '#66bb6a';
-        if (performance == 0) return '#888888';
-        if (performance > -1) return '#ef5350';
-        if (performance > -3) return '#e53935';
-        return '#c62828';
+        // From bright to dark for positive performance
+        if (performance >= 3) return '#00c853'; // bright green
+        if (performance > 1) return '#66bb6a'; // light green
+        if (performance > 0) return '#2e7d32'; // dark green
+
+        if (performance == 0) return '#888888'; // grey
+
+        // From dark to bright for negative performance
+        if (performance > -1) return '#e53935'; // dark red
+        if (performance > -3) return '#ef5350'; // light red
+        return '#c62828'; // bright red
     }
 
     function renderGridHeatmap(container, title, heatmapData) {
