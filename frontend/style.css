@@ -371,11 +371,35 @@ body {
     color: var(--text-primary);
 }
 
+.topic-content {
+    position: relative;
+    padding-bottom: 25px; /* space for the icon */
+}
+
 .topic-content p {
     margin: 0;
     font-size: 0.95em;
     line-height: 1.7;
     color: #333;
+}
+
+.source-link {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    display: inline-block;
+}
+
+.source-icon {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+    opacity: 0.6;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.source-link:hover .source-icon {
+    opacity: 1;
 }
 
 /* Topic-specific overrides */
