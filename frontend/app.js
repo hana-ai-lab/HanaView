@@ -222,6 +222,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                 }
 
+                // --- Icon Logic ---
+                const iconUrl = topic.source_icon_url || 'icons/external-link.svg';
+                const sourceIcon = `
+                    <a href="${topic.url}" target="_blank" class="source-link">
+                        <img src="${iconUrl}" alt="Source" class="source-icon" onerror="this.onerror=null;this.src='icons/external-link.svg';">
+                    </a>
+                `;
 
                 topicBox.innerHTML = `
                     <div class="topic-number-container">
@@ -229,7 +236,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="topic-details">
                         <p class="topic-title">${topic.title}</p>
-                        <div class="topic-content">${topicContent}</div>
+                        <div class="topic-content">
+                            ${topicContent}
+                            ${sourceIcon}
+                        </div>
                     </div>
                 `;
                 topicsContainer.appendChild(topicBox);

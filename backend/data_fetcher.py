@@ -14,6 +14,7 @@ from curl_cffi.requests import Session
 import openai
 import httpx
 from io import StringIO
+from urllib.parse import urlparse
 from .image_generator import generate_fear_greed_chart
 
 # --- Constants ---
@@ -149,6 +150,16 @@ class MarketDataFetcher:
         if isinstance(obj, float) and (math.isnan(obj) or math.isinf(obj)):
             return None
         return obj
+
+    def _get_favicon_url(self, url):
+        """Extracts the base URL and returns a potential favicon URL."""
+        try:
+            parsed_url = urlparse(url)
+            # Use Google's S2 converter which is good at finding icons
+            return f"https://www.google.com/s2/favicons?domain={parsed_url.netloc}&sz=64"
+        except Exception as e:
+            logger.warning(f"Could not parse URL for favicon: {url} - {e}")
+            return None
 
     # --- Ticker List Fetching ---
     def _get_sp500_tickers(self):
@@ -528,15 +539,21 @@ class MarketDataFetcher:
             filtered_news.sort(key=lambda x: x['publish_time_dt'], reverse=True)
 
             # 3. Format all filtered news
-            formatted_news = [
-                {
-                    "title": item['content']['title'],
-                    "link": item['content']['canonicalUrl']['url'],
-                    "publisher": item['content']['provider']['displayName'],
-                    "summary": item['content'].get('summary', '')
-                }
-                for item in filtered_news
-            ]
+            formatted_news = []
+            for item in filtered_news:
+                try:
+                    link = item['content']['canonicalUrl']['url']
+                    favicon_url = self._get_favicon_url(link)
+                    formatted_news.append({
+                        "title": item['content']['title'],
+                        "link": link,
+                        "publisher": item['content']['provider']['displayName'],
+                        "summary": item['content'].get('summary', ''),
+                        "source_icon_url": favicon_url
+                    })
+                except KeyError as e:
+                    logger.warning(f"Skipping article due to missing key {e}: {item.get('content', {}).get('title', 'No Title')}")
+                    continue
 
             self.data['news_raw'] = formatted_news
             logger.info(f"Fetched {len(all_raw_news)} raw news items, found {len(unique_news)} unique articles, {len(filtered_news)} within the last 24 hours, storing the top {len(formatted_news)}.")
