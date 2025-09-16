@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Title and Date
             const summaryHeader = document.createElement('div');
             summaryHeader.className = 'news-summary-header';
-            summaryHeader.innerHTML = '<h3>今朝の3行サマリー</h3>';
+            summaryHeader.innerHTML = '<h3>今朝のサマリー</h3>';
             if (lastUpdated) {
                 const date = new Date(lastUpdated);
                 const dateString = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
