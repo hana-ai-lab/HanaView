@@ -329,6 +329,7 @@ class MarketDataFetcher:
             indicators = []
             jst = timezone(timedelta(hours=9))
             dt_now_jst = datetime.now(jst)
+            is_monday = dt_now_jst.weekday() == 0
             current_date_str = ""
 
             for row in table.find('tbody').find_all('tr'):
@@ -356,8 +357,17 @@ class MarketDataFetcher:
                     tdatetime = datetime.strptime(full_date_str, '%Y/%m/%d %H:%M') + date_offset
                     tdatetime_aware = tdatetime.replace(tzinfo=jst)
 
-                    if not (dt_now_jst - timedelta(hours=2) < tdatetime_aware < dt_now_jst + timedelta(hours=26)):
-                        continue
+                    # Adjust fetch window based on the day
+                    if is_monday:
+                        # On Monday, fetch from Monday morning to Friday evening
+                        start_of_week = dt_now_jst.replace(hour=0, minute=0, second=0, microsecond=0)
+                        end_of_week = start_of_week + timedelta(days=5)
+                        if not (start_of_week <= tdatetime_aware < end_of_week):
+                            continue
+                    else:
+                        # Original logic for Tue-Fri
+                        if not (dt_now_jst - timedelta(hours=2) < tdatetime_aware < dt_now_jst + timedelta(hours=26)):
+                            continue
 
                     importance_str = cells[2 + cell_offset].text.strip()
                     if "★" not in importance_str:
@@ -410,6 +420,7 @@ class MarketDataFetcher:
             tables = pd.read_html(StringIO(html_content), flavor='lxml')
             
             earnings = []
+            is_monday = dt_now.weekday() == 0
             for df in tables:
                 if df.empty: continue
                 for i in range(len(df)):
@@ -425,8 +436,22 @@ class MarketDataFetcher:
                         if ticker and date_str and time_str:
                             text0 = date_str[:10] + " " + time_str[:5]
                             tdatetime = datetime.strptime(text0, '%Y/%m/%d %H:%M') + timedelta(hours=13)
-                            if tdatetime > dt_now - timedelta(hours=2):
-                                earnings.append({"datetime": tdatetime.strftime('%m/%d %H:%M'), "ticker": ticker, "company": f"({company_name})" if company_name else "", "type": "us_earnings"})
+
+                            # Filter out past events
+                            if tdatetime < dt_now - timedelta(hours=2):
+                                continue
+
+                            # Filter future events based on the day
+                            if is_monday:
+                                start_of_week = dt_now - timedelta(days=dt_now.weekday())
+                                end_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=5)
+                                if tdatetime >= end_of_week:
+                                    continue
+                            else:
+                                if tdatetime >= dt_now + timedelta(hours=26):
+                                    continue
+
+                            earnings.append({"datetime": tdatetime.strftime('%m/%d %H:%M'), "ticker": ticker, "company": f"({company_name})" if company_name else "", "type": "us_earnings"})
                     except Exception as e:
                         logger.debug(f"Skipping row {i} in US earnings: {e}")
             
@@ -446,6 +471,7 @@ class MarketDataFetcher:
             tables = pd.read_html(StringIO(html_content), flavor='lxml')
 
             earnings = []
+            is_monday = dt_now.weekday() == 0
             for df in tables:
                 if df.empty: continue
                 for i in range(len(df)):
@@ -463,7 +489,29 @@ class MarketDataFetcher:
                             elif not company_name and len(val) > 2 and val != 'nan' and not val.strip().isdigit() and "/" not in val: company_name = val.strip()[:20]
 
                         if ticker and date_time_str:
-                             earnings.append({"datetime": date_time_str[:16], "ticker": ticker, "company": f"({company_name})" if company_name else "", "type": "jp_earnings"})
+                            try:
+                                # Format is like 'MM月DD日...'. Example: '09月16日 15:00'
+                                parsed_str = date_time_str.replace('月', '/').replace('日', '')
+                                parsed_time = datetime.strptime(f"{dt_now.year}/{parsed_str}", '%Y/%m/%d %H:%M')
+
+                                # Filter out past events
+                                if parsed_time < dt_now - timedelta(hours=2):
+                                    continue
+
+                                # Filter future events based on the day
+                                if is_monday:
+                                    start_of_week = dt_now - timedelta(days=dt_now.weekday())
+                                    end_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=5)
+                                    if parsed_time >= end_of_week:
+                                        continue
+                                else:
+                                    if parsed_time >= dt_now + timedelta(hours=26):
+                                        continue
+
+                                earnings.append({"datetime": date_time_str[:16], "ticker": ticker, "company": f"({company_name})" if company_name else "", "type": "jp_earnings"})
+                            except (ValueError, IndexError):
+                                logger.debug(f"Skipping row {i} in JP earnings due to parse error: {date_time_str}")
+                                continue
                     except Exception as e:
                         logger.debug(f"Skipping row {i} in JP earnings: {e}")
 
@@ -516,10 +564,16 @@ class MarketDataFetcher:
                 self.data['news_raw'] = []
                 return
 
-            now_utc = datetime.now(timezone.utc)
-            twenty_four_hours_ago = now_utc - timedelta(hours=24)
+            jst = timezone(timedelta(hours=9))
+            is_monday = datetime.now(jst).weekday() == 0
+            hours_to_fetch = 168 if is_monday else 24
+            logger.info(f"Fetching news from the last {hours_to_fetch} hours...")
 
-            # 1. Filter news within the last 24 hours
+
+            now_utc = datetime.now(timezone.utc)
+            fetch_until_time = now_utc - timedelta(hours=hours_to_fetch)
+
+            # 1. Filter news within the last specified hours
             filtered_news = []
             for article in raw_news:
                 try:
@@ -528,7 +582,7 @@ class MarketDataFetcher:
                     # fromisoformat doesn't like the 'Z' suffix
                     publish_time = datetime.fromisoformat(pub_date_str.replace('Z', '+00:00'))
 
-                    if publish_time >= twenty_four_hours_ago:
+                    if publish_time >= fetch_until_time:
                         article['publish_time_dt'] = publish_time # Store for sorting
                         filtered_news.append(article)
                 except (KeyError, TypeError) as e:
@@ -556,7 +610,7 @@ class MarketDataFetcher:
                     continue
 
             self.data['news_raw'] = formatted_news
-            logger.info(f"Fetched {len(all_raw_news)} raw news items, found {len(unique_news)} unique articles, {len(filtered_news)} within the last 24 hours, storing the top {len(formatted_news)}.")
+            logger.info(f"Fetched {len(all_raw_news)} raw news items, found {len(unique_news)} unique articles, {len(filtered_news)} within the last {hours_to_fetch} hours, storing the top {len(formatted_news)}.")
 
         except Exception as e:
             logger.error(f"Error fetching or processing yfinance news: {e}")
@@ -958,42 +1012,106 @@ class MarketDataFetcher:
             }
 
     def generate_column(self):
-        # Monday is 0
-        if datetime.now(timezone(timedelta(hours=9))).weekday() != 0:
-            logger.info("Skipping weekly column generation (not Monday).")
+        logger.info("Generating AI column...")
+        day_of_week = datetime.now(timezone(timedelta(hours=9))).weekday() # Monday is 0
+
+        # --- Prepare common data ---
+        market_commentary = self.data.get('market', {}).get('ai_commentary', 'N/A')
+        sp500_heatmap_commentary = self.data.get('sp500_heatmap', {}).get('ai_commentary', 'N/A')
+        nasdaq_heatmap_commentary = self.data.get('nasdaq_heatmap', {}).get('ai_commentary', 'N/A')
+        heatmap_commentary = f"S&P 500:\n{sp500_heatmap_commentary}\n\nNASDAQ:\n{nasdaq_heatmap_commentary}"
+
+        try:
+            with open('backend/hana-memo-202509.txt', 'r', encoding='utf-8') as f:
+                hana_memo = f.read()
+        except FileNotFoundError:
+            logger.warning("hana-memo-202509.txt not found.")
+            hana_memo = "N/A"
+
+        prompt = ""
+        # --- Monday Logic ---
+        if day_of_week == 0:
+            logger.info("Generating Monday's weekly column.")
+            # Prepare Monday-specific data
+            news_168h = json.dumps(self.data.get('news_raw', []), ensure_ascii=False, indent=2)
+            economic_indicators = json.dumps(self.data.get('indicators', {}).get('economic', []), ensure_ascii=False, indent=2)
+            earnings_reports = {
+                "us": self.data.get('indicators', {}).get('us_earnings', []),
+                "jp": self.data.get('indicators', {}).get('jp_earnings', [])
+            }
+            earnings_reports_str = json.dumps(earnings_reports, ensure_ascii=False, indent=2)
+
+            prompt = f"""
+            あなたはプロの金融アナリストです。以下の情報を基に、月曜日のコラムをMarkdown形式で生成してください。
+
+            # 参考情報
+            - **市況のAI解説**: {market_commentary}
+            - **過去168時間のニュース**: {news_168h}
+            - **ヒートマップのAI解説**: {heatmap_commentary}
+            - **今週の経済指標**: {economic_indicators}
+            - **今週の注目決算**: {earnings_reports_str}
+            - **内部メモ**: {hana_memo}
+
+            # 指示
+            上記の情報を専門的に分析し、以下の3つの項目でコラムを作成してください。投資判断は絶対に含めず、あくまで投資戦略アドバイスに留めてください。出力はMarkdown形式で、見出しの前に`○`を付けてください。
+
+            1.  **今週の経済指標、注目ポイント**: 今週発表される経済指標や注目決算の中から特に重要なものをピックアップし、市場に与える影響や注目すべき点を解説してください。
+            2.  **いまの市場の構図**: 市況解説、ニュース、ヒートマップ、内部メモを統合的に解釈し、現在の市場がどのような力学（例: 強気 vs 弱気、リスクオン vs リスクオフ、過熱感、VIX、金利など）で動いているかを簡潔に説明してください。
+            3.  **今週の戦略アドバイス**: 上記の分析を踏まえ、今週一週間を乗り切るための具体的な戦略的アドバイスを提供してください。特定の銘柄の売買推奨は避け、「どのようなシナリオを想定し、どう動くべきか」という観点で記述してください。
+
+            # 出力形式
+            以下のJSON形式で、"response"キーの値としてMarkdown形式のコラムを返してください。
+            {{
+                "response": "ここにMarkdown形式のコラムを記述"
+            }}
+            """
+        # --- Tuesday to Friday Logic ---
+        else:
+            logger.info("Generating Tuesday-Friday daily column.")
+            # Prepare daily data
+            news_summary = self.data.get('news', {}).get('summary', 'N/A')
+            news_topics = json.dumps(self.data.get('news', {}).get('topics', []), ensure_ascii=False, indent=2)
+            economic_indicators = json.dumps(self.data.get('indicators', {}).get('economic', []), ensure_ascii=False, indent=2)
+
+            prompt = f"""
+            あなたはプロの金融アナリストです。以下の情報を基に、本日のコラムをMarkdown形式で生成してください。
+
+            # 参考情報
+            - **市況のAI解説**: {market_commentary}
+            - **ニュースサマリーと主要トピック**:
+              - サマリー: {news_summary}
+              - トピック: {news_topics}
+            - **ヒートマップのAI解説**: {heatmap_commentary}
+            - **今夜の経済指標**: {economic_indicators}
+            - **内部メモ**: {hana_memo}
+
+            # 指示
+            上記の情報を専門的に分析し、以下の3つの項目でコラムを作成してください。投資判断は絶対に含めず、あくまで投資戦略アドバイスに留めてください。出力はMarkdown形式で、見出しの前に`○`を付けてください。
+
+            1.  **今夜の経済指標、注目ポイント**: 今夜発表される経済指標があれば、その注目点を解説してください。もし注目すべき経済指標がなければ、この項目全体を省略してください。
+            2.  **いまの市場の構図**: 市況解説、ニュース、ヒートマップ、内部メモを統合的に解釈し、現在の市場がどのような力学（例: 強気 vs 弱気、リスクオン vs リスクオフ、過熱感、VIX、金利など）で動いているかを簡潔に説明してください。
+            3.  **今夜の戦略アドバイス**: 上記の分析を踏まえ、今夜の取引に向けた具体的な戦略的アドバイスを提供してください。特定の銘柄の売買推奨は避け、「どのようなシナリオを想定し、どう動くべきか」という観点で記述してください。
+
+            # 出力形式
+            以下のJSON形式で、"response"キーの値としてMarkdown形式のコラムを返してください。
+            {{
+                "response": "ここにMarkdown形式のコラムを記述"
+            }}
+            """
+
+        if not prompt:
+            logger.warning("Prompt was not generated. Skipping column generation.")
             self.data['column'] = {}
             return
 
-        logger.info("Generating weekly column...")
-        vix = self.data.get('market', {}).get('vix', {}).get('current', 'N/A')
-        t_note = self.data.get('market', {}).get('t_note_future', {}).get('current', 'N/A')
-        fear_greed = self.data.get('market', {}).get('fear_and_greed', {})
-
-        prompt = f"""
-        今週の米国市場の展望について、日本の個人投資家向けに300字程度のコラムを執筆してください。
-        先週の市場を簡潔に振り返り、今週の注目経済指標やイベントに触れながら、専門家としての洞察を加えてください。
-
-        # 参考データ
-        - VIX指数: {vix}
-        - 米国10年債先物: {t_note}
-        - Fear & Greed Index: 現在値 {fear_greed.get('now', 'N/A')}, 1週間前 {fear_greed.get('prev_week', 'N/A')}
-        - 今週の主な経済指標: {self.data.get('indicators', {}).get('economic', [])[:5]}
-
-        # 出力形式
-        必ず以下のJSON形式で出力してください：
-        {{
-            "response": "ここにコラムを記述"
-        }}
-
-        重要：出力は有効なJSONである必要があります。
-        """
         try:
-            response_json = self._call_openai_api(prompt, max_completion_tokens=500)
-            content = response_json.get('response', '週次コラムの生成に失敗しました。')
-            self.data['column'] = {"weekly_report": {"title": "今週の注目ポイント (AIコラム)", "content": content, "date": datetime.now().strftime('%Y-%m-%d')}}
+            response_json = self._call_openai_api(prompt, max_completion_tokens=2048)
+            content = response_json.get('response', 'コラムの生成に失敗しました。')
+            # The final data structure for the column is just the markdown text.
+            self.data['column'] = {"content": content}
         except Exception as e:
-            logger.error(f"Failed to generate and parse weekly column: {e}")
-            self.data['column'] = {}
+            logger.error(f"Failed to generate and parse AI column: {e}")
+            self.data['column'] = {"content": f"AIコラムの生成中にエラーが発生しました: {e}"}
 
     def generate_heatmap_commentary(self):
         """Generates AI commentary for heatmaps based on 1-day, 1-week, and 1-month performance."""

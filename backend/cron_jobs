@@ -1,4 +1,4 @@
-# Data fetch (Mon-Sat 6:30 JST)
-30 6 * * 1-6 root /app/backend/cron_job_fetch.sh
-# Report generation (Mon-Sat 7:00 JST)
-0 7 * * 1-6 root /app/backend/cron_job_generate.sh
+# Data fetch (Mon-Fri 6:30 JST)
+30 6 * * 1-5 root /app/backend/cron_job_fetch.sh
+# Report generation (Mon-Fri 7:00 JST)
+0 7 * * 1-5 root /app/backend/cron_job_generate.sh
