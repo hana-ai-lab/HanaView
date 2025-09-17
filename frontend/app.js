@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }).observe(container);
     }
 
-    function renderMarketOverview(container, marketData) {
+    function renderMarketOverview(container, marketData, lastUpdated) {
         if (!container) return;
         container.innerHTML = ''; // Clear content
 
@@ -139,10 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // AI Commentary
         if (marketData.ai_commentary) {
+            const dateString = lastUpdated ? `<p class="commentary-date">更新日時: ${new Date(lastUpdated).toLocaleString('ja-JP')}</p>` : '';
             content += `
                 <div class="market-section">
                     <h3>AI解説</h3>
                     <p>${marketData.ai_commentary}</p>
+                    ${dateString}
                 </div>
             `;
         }
@@ -598,16 +600,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function renderHeatmapCommentary(container, commentary) {
+    function renderHeatmapCommentary(container, commentary, lastUpdated) {
         if (!container || !commentary) return;
 
         // Create a wrapper card for the commentary
         const card = document.createElement('div');
         card.className = 'card';
 
+        const dateString = lastUpdated ? `<p class="commentary-date">更新日時: ${new Date(lastUpdated).toLocaleString('ja-JP')}</p>` : '';
+
         const commentaryDiv = document.createElement('div');
         commentaryDiv.className = 'ai-commentary';
-        commentaryDiv.innerHTML = `<h3>AI解説</h3><p>${commentary.replace(/\n/g, '<br>')}</p>`;
+        commentaryDiv.innerHTML = `<h3>AI解説</h3><p>${commentary.replace(/\n/g, '<br>')}</p>${dateString}`;
 
         card.appendChild(commentaryDiv);
         container.appendChild(card);
@@ -625,20 +629,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 lastUpdatedEl.textContent = `Last updated: ${new Date(data.last_updated).toLocaleString('ja-JP')}`;
             }
 
-            renderMarketOverview(document.getElementById('market-content'), data.market);
+            renderMarketOverview(document.getElementById('market-content'), data.market, data.last_updated);
             renderNews(document.getElementById('news-content'), data.news, data.last_updated);
 
             // Render NASDAQ Heatmaps
             renderGridHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'Nasdaq (1-Day)', data.nasdaq_heatmap_1d);
             renderGridHeatmap(document.getElementById('nasdaq-heatmap-1w'), 'Nasdaq (1-Week)', data.nasdaq_heatmap_1w);
             renderGridHeatmap(document.getElementById('nasdaq-heatmap-1m'), 'Nasdaq (1-Month)', data.nasdaq_heatmap_1m);
-            renderHeatmapCommentary(document.getElementById('nasdaq-commentary'), data.nasdaq_heatmap?.ai_commentary);
+            renderHeatmapCommentary(document.getElementById('nasdaq-commentary'), data.nasdaq_heatmap?.ai_commentary, data.last_updated);
 
             // Render S&P 500 & Sector ETF Combined Heatmaps
             renderGridHeatmap(document.getElementById('sp500-heatmap-1d'), 'SP500 & Sector ETFs (1-Day)', data.sp500_combined_heatmap_1d);
             renderGridHeatmap(document.getElementById('sp500-heatmap-1w'), 'SP500 & Sector ETFs (1-Week)', data.sp500_combined_heatmap_1w);
             renderGridHeatmap(document.getElementById('sp500-heatmap-1m'), 'SP500 & Sector ETFs (1-Month)', data.sp500_combined_heatmap_1m);
-            renderHeatmapCommentary(document.getElementById('sp500-commentary'), data.sp500_heatmap?.ai_commentary);
+            renderHeatmapCommentary(document.getElementById('sp500-commentary'), data.sp500_heatmap?.ai_commentary, data.last_updated);
 
             renderIndicators(document.getElementById('indicators-content'), data.indicators, data.last_updated);
             renderColumn(document.getElementById('column-content'), data.column);

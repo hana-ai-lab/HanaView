@@ -445,6 +445,13 @@ body {
     padding-bottom: 8px;
     margin-bottom: 15px;
 }
+
+.commentary-date {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-top: 15px;
+    text-align: right;
+}
 .market-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
