@@ -581,7 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'card';
             card.innerHTML = `
                 <div class="column-container">
-                    <h3>${report.title || 'AIコラム'}</h3>
+                    <h3>${report.title || 'AI解説'}</h3>
                     <p class="column-date">Date: ${report.date || ''}</p>
                     <div class="column-content">
                         ${report.content.replace(/\n/g, '<br>')}
@@ -594,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = '<div class="card"><p>生成が失敗しました。</p></div>';
         // Case 3: Not yet generated
         } else {
-            container.innerHTML = '<div class="card"><p>AIコラムはまだありません。（月曜日に週間分、火〜金曜日に当日分が生成されます）</p></div>';
+            container.innerHTML = '<div class="card"><p>AI解説はまだありません。（月曜日に週間分、火〜金曜日に当日分が生成されます）</p></div>';
         }
     }
 
