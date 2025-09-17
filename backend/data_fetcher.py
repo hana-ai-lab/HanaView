@@ -981,8 +981,8 @@ class MarketDataFetcher:
         # Format news from news_raw for the prompt
         raw_news = self.data.get('news_raw', [])
         if raw_news:
-            # Limit to top 20 news items to keep the prompt concise
-            news_items_str = "\n".join([f"- {item['title']}: {item.get('summary', '概要なし')}" for item in raw_news[:20]])
+            # The limit of 20 news items has been removed.
+            news_items_str = "\n".join([f"- {item['title']}: {item.get('summary', '概要なし')}" for item in raw_news])
         else:
             news_items_str = "利用可能なニュース記事はありません。"
 
