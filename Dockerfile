@@ -21,12 +21,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend /app/backend
 COPY frontend /app/frontend
 
-# Make cron scripts executable
-RUN chmod +x /app/backend/cron_job_*.sh
+# Copy the startup script
+COPY start.sh /app/start.sh
+
+# Make scripts executable
+RUN chmod +x /app/start.sh
+RUN chmod +x /app/backend/run_job.sh
 
 # Add cron job
 COPY backend/cron_jobs /etc/cron.d/hanaview-cron
 RUN chmod 0644 /etc/cron.d/hanaview-cron
 
-# Start services.
-CMD cron && cd /app/backend && uvicorn main:app --host 0.0.0.0 --port 8000
+# Start services using the startup script
+CMD [ "/app/start.sh" ]
