@@ -560,7 +560,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderColumn(container, columnData) {
         if (!container) return;
         container.innerHTML = '';
-        const report = columnData ? columnData.weekly_report : null;
+
+        // Case 0: columnData itself is an error string.
+        if (typeof columnData === 'string') {
+            container.innerHTML = `<div class="card"><p>${columnData}</p></div>`;
+            return;
+        }
+
+        const report = columnData ? (columnData.daily_report || columnData.weekly_report) : null;
 
         // Case 1: Success - content is available
         if (report && report.content) {
@@ -568,7 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'card';
             card.innerHTML = `
                 <div class="column-container">
-                    <h3>${report.title || '週次AIコラム'}</h3>
+                    <h3>${report.title || 'AIコラム'}</h3>
                     <p class="column-date">Date: ${report.date || ''}</p>
                     <div class="column-content">
                         ${report.content.replace(/\n/g, '<br>')}
@@ -576,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
             container.appendChild(card);
-        // Case 2: Failure - an error is reported
+        // Case 2: Failure - an error is reported inside the report object
         } else if (report && report.error) {
             container.innerHTML = '<div class="card"><p>生成が失敗しました。</p></div>';
         // Case 3: Not yet generated
