@@ -27,6 +27,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Date Formatting Helper ---
+    function formatDateForDisplay(dateInput) {
+        if (!dateInput) return '';
+        try {
+            const date = new Date(dateInput);
+            if (isNaN(date.getTime())) {
+                console.error("Invalid date input for formatting:", dateInput);
+                return '';
+            }
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}年${month}月${day}日 ${hours}:${minutes}`;
+        } catch (e) {
+            console.error("Error formatting date:", dateInput, e);
+            return '';
+        }
+    }
+
     // --- Rendering Functions ---
 
     function renderLightweightChart(containerId, data, title) {
@@ -139,12 +160,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // AI Commentary
         if (marketData.ai_commentary) {
-            const dateString = lastUpdated ? `<p class="commentary-date">更新日時: ${new Date(lastUpdated).toLocaleString('ja-JP')}</p>` : '';
+            const formattedDate = formatDateForDisplay(lastUpdated);
+            const dateHtml = formattedDate ? `<p class="ai-date">${formattedDate}</p>` : '';
             content += `
                 <div class="market-section">
-                    <h3>AI解説</h3>
-                    <p>${marketData.ai_commentary}</p>
-                    ${dateString}
+                    <div class="ai-header">
+                        <h3>AI解説</h3>
+                        ${dateHtml}
+                    </div>
+                    <p>${marketData.ai_commentary.replace(/\n/g, '<br>')}</p>
                 </div>
             `;
         }
@@ -581,10 +605,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (report && report.content) {
             const card = document.createElement('div');
             card.className = 'card';
+            const formattedDate = formatDateForDisplay(report.date);
+            const dateHtml = formattedDate ? `<p class="ai-date">${formattedDate}</p>` : '';
             card.innerHTML = `
                 <div class="column-container">
-                    <h3>${report.title || 'AI解説'}</h3>
-                    <p class="column-date">Date: ${report.date || ''}</p>
+                    <div class="ai-header">
+                        <h3>${report.title || 'AI解説'}</h3>
+                        ${dateHtml}
+                    </div>
                     <div class="column-content">
                         ${report.content.replace(/\n/g, '<br>')}
                     </div>
@@ -607,11 +635,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = document.createElement('div');
         card.className = 'card';
 
-        const dateString = lastUpdated ? `<p class="commentary-date">更新日時: ${new Date(lastUpdated).toLocaleString('ja-JP')}</p>` : '';
+        const formattedDate = formatDateForDisplay(lastUpdated);
+        const dateHtml = formattedDate ? `<p class="ai-date">${formattedDate}</p>` : '';
 
         const commentaryDiv = document.createElement('div');
         commentaryDiv.className = 'ai-commentary';
-        commentaryDiv.innerHTML = `<h3>AI解説</h3><p>${commentary.replace(/\n/g, '<br>')}</p>${dateString}`;
+        commentaryDiv.innerHTML = `
+            <div class="ai-header">
+                <h3>AI解説</h3>
+                ${dateHtml}
+            </div>
+            <p>${commentary.replace(/\n/g, '<br>')}</p>
+        `;
 
         card.appendChild(commentaryDiv);
         container.appendChild(card);
