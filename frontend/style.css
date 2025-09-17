@@ -36,6 +36,14 @@ body {
     color: var(--tab-text);
     font-size: 1.8em;
     margin: 0 0 5px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-icon {
+    height: 1em;
+    margin-left: 10px;
 }
 
 .last-updated {
