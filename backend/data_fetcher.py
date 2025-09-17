@@ -518,9 +518,15 @@ class MarketDataFetcher:
                 return
 
             now_utc = datetime.now(timezone.utc)
-            twenty_four_hours_ago = now_utc - timedelta(hours=24)
 
-            # 1. Filter news within the last 24 hours
+            # On Monday (weekday() == 0), fetch news from the last 7 days (168 hours)
+            # Otherwise, fetch from the last 24 hours.
+            hours_to_fetch = 168 if now_utc.weekday() == 0 else 24
+            fetch_since_date = now_utc - timedelta(hours=hours_to_fetch)
+
+            logger.info(f"Fetching news from the last {hours_to_fetch} hours (since {fetch_since_date.strftime('%Y-%m-%d %H:%M:%S UTC')})...")
+
+            # 1. Filter news within the specified time frame
             filtered_news = []
             for article in raw_news:
                 try:
@@ -529,7 +535,7 @@ class MarketDataFetcher:
                     # fromisoformat doesn't like the 'Z' suffix
                     publish_time = datetime.fromisoformat(pub_date_str.replace('Z', '+00:00'))
 
-                    if publish_time >= twenty_four_hours_ago:
+                    if publish_time >= fetch_since_date:
                         article['publish_time_dt'] = publish_time # Store for sorting
                         filtered_news.append(article)
                 except (KeyError, TypeError) as e:
@@ -557,7 +563,7 @@ class MarketDataFetcher:
                     continue
 
             self.data['news_raw'] = formatted_news
-            logger.info(f"Fetched {len(all_raw_news)} raw news items, found {len(unique_news)} unique articles, {len(filtered_news)} within the last 24 hours, storing the top {len(formatted_news)}.")
+            logger.info(f"Fetched {len(all_raw_news)} raw news items, found {len(unique_news)} unique articles, {len(filtered_news)} within the last {hours_to_fetch} hours, storing the top {len(formatted_news)}.")
 
         except Exception as e:
             logger.error(f"Error fetching or processing yfinance news: {e}")
@@ -971,7 +977,15 @@ class MarketDataFetcher:
             logger.warning("Memo file not found at backend/hana-memo-202509.txt")
 
         market_data = self.data.get("market", {})
-        news_summary = self.data.get("news", {}).get("summary", "ニュースがありません。")
+
+        # Format news from news_raw for the prompt
+        raw_news = self.data.get('news_raw', [])
+        if raw_news:
+            # Limit to top 20 news items to keep the prompt concise
+            news_items_str = "\n".join([f"- {item['title']}: {item.get('summary', '概要なし')}" for item in raw_news[:20]])
+        else:
+            news_items_str = "利用可能なニュース記事はありません。"
+
         fg_data = market_data.get('fear_and_greed', {})
         fg_now_val = fg_data.get('now', 'N/A')
         vix_val = market_data.get('vix', {}).get('current', 'N/A')
@@ -997,29 +1011,33 @@ class MarketDataFetcher:
         if today.weekday() == 0:  # Monday
             specific_instructions = """
   1.  **### 今週の注目ポイント**
-      - 「経済指標カレンダー」の中から、今週予定されている最も重要度（星の数が多い）が高い指標を特定してください。
-      - その指標が市場に与える影響について、市場予想（forecast）と前回の値（previous）を比較しながら、簡潔に解説してください。リストにない指標（例: CPI）について言及してはいけません。
+      - 「経済指標カレンダー」と「直近1週間のニュース」を参考に、今週の相場で最も重要となるイベントやテーマを特定してください。
+      - 経済指標については、その重要度と市場予測を基に解説してください。
+      - ニュースについては、市場全体のセンチメントに影響を与えそうな大きな話題を取り上げてください。
 
   2.  **### いまの市場の構図**
       - 「市場の構図（参考データ）」を基に、現在の市場センチメント（Fear & Greed Index、VIX指数、10年債金利）を要約してください。
 
   3.  **### 今週の戦略アドバイス**
-      - 上記の分析と「Hanaからの相場メモ」を総合的に判断し、今週の市場に臨む上での具体的な戦略を提案してください。
+      - 上記の分析、ニュース、「Hanaからの相場メモ」を総合的に判断し、今週の市場に臨む上での具体的な戦略を提案してください。
       - リスク管理の重要性についても触れてください。
 """
+            news_section_title = "直近1週間のニュース"
         else:  # Tuesday to Friday
             specific_instructions = """
   1.  **### 本日の注目ポイント**
-      - 「経済指標カレンダー」の中から、本日予定されている最も重要度（星の数が多い）が高い指標を特定してください。
-      - その指標が市場に与える影響について、市場予想（forecast）と前回の値（previous）を比較しながら、簡潔に解説してください。ただし、経済指標がなければ「なし」と答えてください。リストにない指標（例: CPI）について言及してはいけません。
+      - 「経済指標カレンダー」と「直近24時間のニュース」を参考に、本日の相場で最も重要となるイベントやテーマを特定してください。
+      - 経済指標については、その重要度と市場予測を基に解説してください。なければ「なし」と答えてください。
+      - ニュースについては、市場全体のセンチメントに影響を与えそうな大きな話題を取り上げてください。
 
   2.  **### いまの市場の構図**
       - 「市場の構図（参考データ）」を基に、現在の市場センチメント（Fear & Greed Index、VIX指数、10年債金利）を要約してください。
 
   3.  **### 今日の戦略アドバイス**
-      - 上記の分析と「Hanaからの相場メモ」を総合的に判断し、今日の市場に臨む上での具体的な戦略を提案してください。
+      - 上記の分析、ニュース、「Hanaからの相場メモ」を総合的に判断し、今日の市場に臨む上での具体的な戦略を提案してください。
       - リスク管理の重要性についても触れてください。
 """
+            news_section_title = "直近24時間のニュース"
 
         data_section = f"""
 # 提供データ
@@ -1030,8 +1048,8 @@ class MarketDataFetcher:
 ## Hanaからの相場メモ
 {memo_content}
 
-## 最新ニュースのサマリー
-{news_summary}
+## {news_section_title}
+{news_items_str}
 
 ## 市場の構図（参考データ）
 {market_structure_str}
