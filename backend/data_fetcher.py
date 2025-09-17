@@ -960,9 +960,8 @@ class MarketDataFetcher:
 
     def generate_column(self):
         today = datetime.now(pytz.timezone('Asia/Tokyo'))
-        logger.info("Generating daily column...")
+        logger.info("Generating AI column...")
 
-        # メモファイルの内容を読み込む
         try:
             with open('backend/hana-memo-202509.txt', 'r', encoding='utf-8') as f:
                 memo_content = f.read()
@@ -970,103 +969,110 @@ class MarketDataFetcher:
             memo_content = "メモファイルが見つかりません。"
             logger.warning("Memo file not found at backend/hana-memo-202509.txt")
 
-        # 必要なデータを抽出
         market_data = self.data.get("market", {})
-        news_summary = self.data.get("news", {}).get("summary", "ニュースなし")
+        news_summary = self.data.get("news", {}).get("summary", "ニュースがありません。")
         fg_data = market_data.get('fear_and_greed', {})
         fg_now_val = fg_data.get('now', 'N/A')
         vix_val = market_data.get('vix', {}).get('current', 'N/A')
         tnote_val = market_data.get('t_note_future', {}).get('current', 'N/A')
+        market_structure_str = f"Fear & Greed Index: {fg_now_val}, VIX指数: {vix_val}, 米国10年債金利: {tnote_val}%"
 
-        market_structure_str = f"F&G: {fg_now_val} | VIX: {vix_val} | 10y金利: {tnote_val}"
+        indicators = self.data.get("indicators", {}).get("economic", [])
+        indicators_str = json.dumps(indicators, ensure_ascii=False, indent=2) if indicators else "本日は注目すべき経済指標の発表はありません。"
 
-        # 月曜日のプロンプト
-        if today.weekday() == 0:  # 0 is Monday
-            prompt = f"""
+        base_prompt_intro = """
 # 命令書
-あなたは、気鋭の金融アナリストです。提供されたマーケット情報と「Hanaからの相場メモ」を基に、個人投資家向けの簡潔で分かりやすい「ワンポイント市況解説」を**日本語で**作成してください。
+あなたはプロの金融アナリストです。提供されたマーケットデータとメモを基に、日本の個人投資家向けの「ワンポイント市況解説」を、以下の指示に従って**日本語で**作成してください。
 
 # 指示
-- 全体的に、箇条書きと絵文字（○、→、▲など）を多用し、読者が30秒で要点を把握できるような、スピーディーで分かりやすい文章を心がけてください。
-- 各セクションは以下の文字数を目安にしてください。
-  - 注目ポイント: 200字程度
-  - いまの市場の構図: 150字程度
-  - 戦略アドバイス: 250字程度
-- 以下の3つのセクションで構成してください。
+- **厳格なデータ参照**: 解説は、必ず「提供データ」セクションにある情報**のみ**に基づいて作成してください。特に経済指標については、リストにない指標（例: CPI）について言及してはいけません。
+- **フォーマット**:
+  - 各セクションは指定された見出し（例: 「### 本日の注目ポイント」）を使ってください。
+  - 見出し以外では、不要な記号（○、→、▲など）や絵文字は一切使わないでください。
+  - 各セクションの内容は、自然な文章で、改行を適切に使用して記述してください。
+- **セクション構成**:
+"""
 
-1.  **○今週の注目ポイント**:
-    - 今週の最も重要な経済指標やイベントを取り上げ、市場予想と、その結果がどうなればどう動くかのシナリオを「→」を使って簡潔に記述してください。
+        if today.weekday() == 0:  # Monday
+            specific_instructions = """
+  1.  **### 今週の注目ポイント**
+      - 「経済指標カレンダー」の中から、今週予定されている最も重要度（星の数が多い）が高い指標を特定してください。
+      - その指標が市場に与える影響について、市場予想（forecast）と前回の値（previous）を比較しながら、簡潔に解説してください。
 
-2.  **○いまの市場の構図**:
-    - Fear & Greed Index、VIX、長期金利などの主要なセンチメント指標の現状をまとめ、現在の市場がどのような状況にあるかを一行で要約してください。
+  2.  **### いまの市場の構図**
+      - 「市場の構図（参考データ）」を基に、現在の市場センチメント（Fear & Greed Index、VIX指数、10年債金利）を要約してください。
 
-3.  **○今週の戦略アドバイス**:
-    - 上記の分析を踏まえ、具体的な投資戦略を「シナリオ分けがカギ」といったキャッチーな見出しで記述してください。
-    - 「買い一辺倒は危険」や「ショートはサイズ抑えめ」など、具体的な注意点も添えてください。
+  3.  **### 今週の戦略アドバイス**
+      - 上記の分析と「Hanaからの相場メモ」を総合的に判断し、今週の市場に臨む上での具体的な戦略を提案してください。
+      - リスク管理の重要性についても触れてください。
+"""
+        else:  # Tuesday to Friday
+            specific_instructions = """
+  1.  **### 本日の注目ポイント**
+      - 「経済指標カレンダー」の中から、本日予定されている最も重要度（星の数が多い）が高い指標を特定してください。
+      - その指標が市場に与える影響について、市場予想（forecast）と前回の値（previous）を比較しながら、簡潔に解説してください。
 
-# Hanaからの相場メモ
+  2.  **### いまの市場の構図**
+      - 「市場の構図（参考データ）」を基に、現在の市場センチメント（Fear & Greed Index、VIX指数、10年債金利）を要約してください。
+
+  3.  **### 今日の戦略アドバイス**
+      - 上記の分析と「Hanaからの相場メモ」を総合的に判断し、今日の市場に臨む上での具体的な戦略を提案してください。
+      - リスク管理の重要性についても触れてください。
+"""
+
+        data_section = f"""
+# 提供データ
+
+## 経済指標カレンダー
+{indicators_str}
+
+## Hanaからの相場メモ
 {memo_content}
 
-# 最新ニュースのサマリー
+## 最新ニュースのサマリー
 {news_summary}
 
-# 市場の構図（参考データ）
+## 市場の構図（参考データ）
 {market_structure_str}
 """
-        # 火曜日から金曜日のプロンプト
-        else:
-            prompt = f"""
-# 命令書
-あなたは、気鋭の金融アナリストです。提供されたマーケット情報と「Hanaからの相場メモ」を基に、個人投資家向けの簡潔で分かりやすい「ワンポイント市況解説」を**日本語で**作成してください。
+        prompt = base_prompt_intro + specific_instructions + data_section
 
-# 指示
-- 全体的に、箇条書きと絵文字（○、→、▲など）を多用し、読者が30秒で要点を把握できるような、スピーディーで分かりやすい文章を心がけてください。
-- 各セクションは以下の文字数を目安にしてください。
-  - 注目ポイント: 200字程度
-  - いまの市場の構図: 150字程度
-  - 戦略アドバイス: 250字程度
-- 以下の3つのセクションで構成してください。
-
-1.  **○本日の注目ポイント**:
-    - 今日の最も重要な経済指標やイベントを取り上げ、市場予想と、その結果がどうなればどう動くかのシナリオを「→」を使って簡潔に記述してください。
-
-2.  **○いまの市場の構図**:
-    - Fear & Greed Index、VIX、長期金利などの主要なセンチメント指標の現状をまとめ、現在の市場がどのような状況にあるかを一行で要約してください。
-
-3.  **○今日の戦略アドバイス**:
-    - 上記の分析を踏まえ、具体的なデイトレード戦略を「シナリオ分けがカギ」といったキャッチーな見出しで記述してください。
-    - 「初動に飛びつかずリテストを待つ」や「サイズ抑えめ」など、具体的な注意点も添えてください。
-
-# Hanaからの相場メモ
-{memo_content}
-
-# 最新ニュースのサマリー
-{news_summary}
-
-# 市場の構図（参考データ）
-{market_structure_str}
-"""
         try:
             if not self.openai_client:
-                 raise MarketDataError("E001", "OpenAI client is not available for column generation.")
+                raise MarketDataError("E001", "OpenAI client is not available for column generation.")
 
             response = self.openai_client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "あなたはプロの金融アナリストです。"},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7,
-                max_tokens=1500,
+                temperature=0.6,
+                max_tokens=1000,
                 top_p=1.0,
                 frequency_penalty=0.0,
                 presence_penalty=0.0
             )
             generated_text = response.choices[0].message.content.strip()
-            self.data['column'] = generated_text
+
+            # レポートタイプのキーを決定
+            report_type = "weekly_report" if today.weekday() == 0 else "daily_report"
+
+            self.data['column'] = {
+                report_type: {
+                    "title": "AIコラム", # タイトルは固定または動的に生成可能
+                    "date": today.strftime('%Y-%m-%d'),
+                    "content": generated_text
+                }
+            }
         except Exception as e:
             logger.error(f"Error generating column: {e}")
-            self.data['column'] = "コラム生成中にエラーが発生しました。"
+            report_type = "weekly_report" if today.weekday() == 0 else "daily_report"
+            self.data['column'] = {
+                report_type: {
+                    "error": "コラム生成中にエラーが発生しました。"
+                }
+            }
 
     def generate_heatmap_commentary(self):
         """Generates AI commentary for heatmaps based on 1-day, 1-week, and 1-month performance."""
