@@ -1,7 +1,7 @@
-# Data fetch (Mon-Fri 6:30 JST)
+# Data fetch (Mon-Fri 6:15 JST)
 # The `backend/cron-env.sh` file is created by the start.sh script and contains the environment variables.
 # The `run_job.sh` script handles the execution and logging.
-30 6 * * 1-5 root . /app/backend/cron-env.sh; /app/backend/run_job.sh fetch >> /app/logs/cron_error.log 2>&1
+15 6 * * 1-5 root . /app/backend/cron-env.sh; /app/backend/run_job.sh fetch >> /app/logs/cron_error.log 2>&1
 
-# Report generation (Mon-Fri 7:00 JST)
-0 7 * * 1-5 root . /app/backend/cron-env.sh; /app/backend/run_job.sh generate >> /app/logs/cron_error.log 2>&1
+# Report generation (Mon-Fri 6:30 JST)
+30 6 * * 1-5 root . /app/backend/cron-env.sh; /app/backend/run_job.sh generate >> /app/logs/cron_error.log 2>&1
