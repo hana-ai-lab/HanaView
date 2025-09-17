@@ -5,13 +5,16 @@ WORKDIR /app
 # Set the timezone to Japan Standard Time.
 ENV TZ=Asia/Tokyo
 
-# Install system dependencies.
+# Install system dependencies including tzdata for timezone support
 RUN apt-get update && apt-get install -y \
     cron \
     curl \
-    # Cleanup
+    tzdata \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Configure timezone properly for cron
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Copy backend requirements and install Python packages.
 COPY backend/requirements.txt .
