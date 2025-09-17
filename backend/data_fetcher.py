@@ -1087,7 +1087,7 @@ class MarketDataFetcher:
             self.data['column'] = {
                 report_type: {
                     "title": "AI解説", # タイトルは固定または動的に生成可能
-                    "date": today.strftime('%Y-%m-%d'),
+                    "date": today.isoformat(),
                     "content": generated_text
                 }
             }
