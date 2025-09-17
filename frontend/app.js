@@ -562,23 +562,27 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = '';
         const report = columnData ? columnData.weekly_report : null;
 
-        if (!report || !report.content) {
-            container.innerHTML = '<div class="card"><p>今週のAIコラムはまだありません。（毎週月曜日に生成されます）</p></div>';
-            return;
-        }
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <div class="column-container">
-                <h3>${report.title || '週次AIコラム'}</h3>
-                <p class="column-date">Date: ${report.date || ''}</p>
-                <div class="column-content">
-                    ${report.content.replace(/\n/g, '<br>')}
+        // Case 1: Success - content is available
+        if (report && report.content) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="column-container">
+                    <h3>${report.title || '週次AIコラム'}</h3>
+                    <p class="column-date">Date: ${report.date || ''}</p>
+                    <div class="column-content">
+                        ${report.content.replace(/\n/g, '<br>')}
+                    </div>
                 </div>
-            </div>
-        `;
-        container.appendChild(card);
+            `;
+            container.appendChild(card);
+        // Case 2: Failure - an error is reported
+        } else if (report && report.error) {
+            container.innerHTML = '<div class="card"><p>生成が失敗しました。</p></div>';
+        // Case 3: Not yet generated
+        } else {
+            container.innerHTML = '<div class="card"><p>AIコラムはまだありません。（月曜日に週間分、火〜金曜日に当日分が生成されます）</p></div>';
+        }
     }
 
     function renderHeatmapCommentary(container, commentary) {
