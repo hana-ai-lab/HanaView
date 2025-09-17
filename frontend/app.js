@@ -178,12 +178,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // Title and Date
             const summaryHeader = document.createElement('div');
             summaryHeader.className = 'news-summary-header';
-            summaryHeader.innerHTML = '<h3>今朝のサマリー</h3>';
+
+            let title = '<h3>今朝のサマリー</h3>';
+            let dateString = '';
             if (lastUpdated) {
                 const date = new Date(lastUpdated);
-                const dateString = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
-                summaryHeader.innerHTML += `<p class="summary-date">${dateString}</p>`;
+                // getDay() returns 0 for Sunday, 1 for Monday, etc.
+                if (date.getDay() === 1) { // Monday
+                    title = '<h3>先週のサマリー</h3>';
+                }
+                dateString = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
             }
+            summaryHeader.innerHTML = `${title}<p class="summary-date">${dateString}</p>`;
 
             // Body and Image
             const summaryBody = document.createElement('div');
