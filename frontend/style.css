@@ -454,12 +454,6 @@ body {
     margin-bottom: 15px;
 }
 
-.commentary-date {
-    font-size: 0.9em;
-    color: var(--text-secondary);
-    margin-top: 15px;
-    text-align: right;
-}
 .market-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -545,19 +539,34 @@ body {
     margin: 4px 0;
 }
 
-/* --- Column Tab Styles --- */
-.column-container h3 {
-    color: var(--tab-text);
-    font-size: 1.3em;
+/* --- AI Commentary & Column Styles --- */
+.ai-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     border-bottom: 2px solid var(--border-color);
     padding-bottom: 8px;
-    margin-bottom: 5px;
-}
-.column-date {
-    font-size: 0.9em;
-    color: var(--text-secondary);
     margin-bottom: 15px;
 }
+
+.ai-header h3 {
+    color: var(--tab-text);
+    font-size: 1.3em;
+    margin: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.ai-date {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin: 0;
+    white-space: nowrap;
+    padding-left: 15px;
+}
+
+/* --- Column Tab Styles --- */
+/* Styles for .column-container h3 and .column-date are now handled by .ai-header */
 .column-content {
     line-height: 1.7;
 }
