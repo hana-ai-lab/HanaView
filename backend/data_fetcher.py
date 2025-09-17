@@ -17,6 +17,10 @@ import httpx
 from io import StringIO
 from urllib.parse import urlparse
 from .image_generator import generate_fear_greed_chart
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # --- Constants ---
 DATA_DIR = 'data'
@@ -970,11 +974,12 @@ class MarketDataFetcher:
         logger.info("Generating AI column...")
 
         try:
-            with open('backend/hana-memo-202509.txt', 'r', encoding='utf-8') as f:
+            memo_file_path = os.getenv('HANA_MEMO_FILE', 'backend/hana-memo-202509.txt') # Fallback for safety
+            with open(memo_file_path, 'r', encoding='utf-8') as f:
                 memo_content = f.read()
         except FileNotFoundError:
             memo_content = "メモファイルが見つかりません。"
-            logger.warning("Memo file not found at backend/hana-memo-202509.txt")
+            logger.warning(f"Memo file not found at {memo_file_path}")
 
         market_data = self.data.get("market", {})
 
