@@ -769,27 +769,24 @@ class MarketDataFetcher:
         return heatmaps
 
     # --- AI Generation ---
-    def _call_openai_api(self, prompt, max_completion_tokens=150):
+    def _call_openai_api(self, model, messages, max_tokens, temperature=0.7, response_format=None, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
+        """A generalized method to call the OpenAI Chat Completions API."""
         if not self.openai_client:
             raise MarketDataError("E005", "OpenAI client is not available.")
         try:
-            logger.info(f"Calling OpenAI API (max_completion_tokens={max_completion_tokens})...")
-
-            messages = [
-                {
-                    "role": "system",
-                    "content": "You are a helpful assistant designed to output JSON. Your response must be valid JSON."
-                },
-                {"role": "user", "content": prompt}
-            ]
+            logger.info(f"Calling OpenAI API (model={model}, max_tokens={max_tokens})...")
 
             kwargs = {
-                "model": "gpt-4o-mini",
+                "model": model,
                 "messages": messages,
-                "temperature": 0.7,
-                "max_completion_tokens": max_completion_tokens,
-                "response_format": {"type": "json_object"}
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+                "top_p": top_p,
+                "frequency_penalty": frequency_penalty,
+                "presence_penalty": presence_penalty,
             }
+            if response_format:
+                kwargs["response_format"] = response_format
 
             response = self.openai_client.chat.completions.create(**kwargs)
 
@@ -802,7 +799,7 @@ class MarketDataFetcher:
                 raise MarketDataError("E005", "Empty response from OpenAI API")
 
             if response.choices[0].finish_reason == 'length':
-                logger.warning("Response may be truncated due to max_completion_tokens limit.")
+                logger.warning(f"Response may be truncated due to max_tokens limit ({max_tokens}).")
 
             content = response.choices[0].message.content
 
@@ -813,11 +810,15 @@ class MarketDataFetcher:
             content = content.strip()
             logger.debug(f"Received response (first 200 chars): {content[:200]}")
 
-            try:
-                return json.loads(content)
-            except json.JSONDecodeError as je:
-                logger.error(f"Failed to parse JSON response: {content[:500]}")
-                raise MarketDataError("E005", f"Invalid JSON response: {je}") from je
+            # If JSON format is expected, parse it. Otherwise, return raw text.
+            if response_format and response_format.get("type") == "json_object":
+                try:
+                    return json.loads(content)
+                except json.JSONDecodeError as je:
+                    logger.error(f"Failed to parse JSON response: {content[:500]}")
+                    raise MarketDataError("E005", f"Invalid JSON response: {je}") from je
+            else:
+                return content
 
         except openai.APIError as api_error:
             logger.error(f"OpenAI API error: {api_error}")
@@ -881,7 +882,16 @@ class MarketDataFetcher:
         重要：出力は有効なJSONである必要があります。"""
 
         try:
-            response_json = self._call_openai_api(prompt, max_completion_tokens=500)
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant designed to output JSON. Your response must be valid JSON."},
+                {"role": "user", "content": prompt}
+            ]
+            response_json = self._call_openai_api(
+                model="gpt-4.1",
+                messages=messages,
+                max_tokens=500,
+                response_format={"type": "json_object"}
+            )
             self.data['market']['ai_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
         except Exception as e:
             logger.error(f"Failed to generate and parse AI commentary: {e}")
@@ -957,7 +967,16 @@ class MarketDataFetcher:
         }}
         """
         try:
-            news_data = self._call_openai_api(prompt, max_completion_tokens=1024)
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant designed to output JSON. Your response must be valid JSON."},
+                {"role": "user", "content": prompt}
+            ]
+            news_data = self._call_openai_api(
+                model="gpt-4.1",
+                messages=messages,
+                max_tokens=1024,
+                response_format={"type": "json_object"}
+            )
             if isinstance(news_data, str) or 'error' in news_data:
                  raise MarketDataError("E005", f"AI news analysis failed: {news_data}")
             self.data['news'] = news_data
@@ -1064,22 +1083,16 @@ class MarketDataFetcher:
         prompt = base_prompt_intro + specific_instructions + data_section
 
         try:
-            if not self.openai_client:
-                raise MarketDataError("E001", "OpenAI client is not available for column generation.")
-
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "あなたはプロの金融アナリストです。"},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.6,
+            messages = [
+                {"role": "system", "content": "あなたはプロの金融アナリストです。"},
+                {"role": "user", "content": prompt}
+            ]
+            generated_text = self._call_openai_api(
+                model="gpt-4.1",
+                messages=messages,
                 max_tokens=1000,
-                top_p=1.0,
-                frequency_penalty=0.0,
-                presence_penalty=0.0
+                temperature=0.6
             )
-            generated_text = response.choices[0].message.content.strip()
 
             # レポートタイプのキーを決定
             report_type = "weekly_report" if today.weekday() == 0 else "daily_report"
@@ -1200,8 +1213,16 @@ class MarketDataFetcher:
 
                     重要：出力は有効なJSONである必要があります。
                     """
-
-                response_json = self._call_openai_api(prompt, max_completion_tokens=700)
+                messages = [
+                    {"role": "system", "content": "You are a helpful assistant designed to output JSON. Your response must be valid JSON."},
+                    {"role": "user", "content": prompt}
+                ]
+                response_json = self._call_openai_api(
+                    model="gpt-4.1",
+                    messages=messages,
+                    max_tokens=700,
+                    response_format={"type": "json_object"}
+                )
                 commentary = response_json.get('response', 'AI解説の生成に失敗しました。')
                 # Assign commentary to the existing dictionary to avoid overwriting other keys
                 if f'{index_base_name}_heatmap' not in self.data:
