@@ -887,7 +887,7 @@ class MarketDataFetcher:
                 {"role": "user", "content": prompt}
             ]
             response_json = self._call_openai_api(
-                model="gpt-4-turbo",
+                model="gpt-4.1",
                 messages=messages,
                 max_tokens=500,
                 response_format={"type": "json_object"}
