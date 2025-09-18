@@ -887,7 +887,7 @@ class MarketDataFetcher:
                 {"role": "user", "content": prompt}
             ]
             response_json = self._call_openai_api(
-                model="gpt-4.1",
+                model="gpt-4-turbo",
                 messages=messages,
                 max_tokens=500,
                 response_format={"type": "json_object"}
@@ -972,7 +972,7 @@ class MarketDataFetcher:
                 {"role": "user", "content": prompt}
             ]
             news_data = self._call_openai_api(
-                model="gpt-4.1",
+                model="gpt-4-turbo",
                 messages=messages,
                 max_tokens=1024,
                 response_format={"type": "json_object"}
@@ -1088,7 +1088,7 @@ class MarketDataFetcher:
                 {"role": "user", "content": prompt}
             ]
             generated_text = self._call_openai_api(
-                model="gpt-4.1",
+                model="gpt-4-turbo",
                 messages=messages,
                 max_tokens=1000,
                 temperature=0.6
@@ -1218,7 +1218,7 @@ class MarketDataFetcher:
                     {"role": "user", "content": prompt}
                 ]
                 response_json = self._call_openai_api(
-                    model="gpt-4.1",
+                    model="gpt-4-turbo",
                     messages=messages,
                     max_tokens=700,
                     response_format={"type": "json_object"}
