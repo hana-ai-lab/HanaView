@@ -690,4 +690,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initTabs();
     fetchDataAndRender();
+
+    // --- Swipe Navigation for Tabs ---
+    function initSwipeNavigation() {
+        const contentArea = document.getElementById('dashboard-content');
+        const tabContainer = document.querySelector('.tab-container');
+        let touchstartX = 0;
+        let touchendX = 0;
+        const swipeThreshold = 50; // Minimum horizontal distance for a swipe
+
+        contentArea.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        contentArea.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+
+        function handleSwipe() {
+            const deltaX = touchendX - touchstartX;
+            if (Math.abs(deltaX) < swipeThreshold) {
+                return; // Not a significant swipe
+            }
+
+            const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
+            const currentActiveIndex = tabButtons.findIndex(btn => btn.classList.contains('active'));
+            if (currentActiveIndex === -1) return; // Should not happen
+
+            let nextIndex;
+            if (deltaX > 0) { // Right swipe (move to tab on the left)
+                nextIndex = currentActiveIndex - 1;
+            } else { // Left swipe (move to tab on the right)
+                nextIndex = currentActiveIndex + 1;
+            }
+
+            // Loop around if at the beginning or end
+            if (nextIndex < 0) {
+                nextIndex = tabButtons.length - 1;
+            } else if (nextIndex >= tabButtons.length) {
+                nextIndex = 0;
+            }
+
+            // Get the target button and simulate a click to switch tabs
+            const nextTabButton = tabButtons[nextIndex];
+            if (nextTabButton) {
+                nextTabButton.click();
+            }
+        }
+    }
+
+    initSwipeNavigation();
 });
