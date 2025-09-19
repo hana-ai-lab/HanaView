@@ -2,7 +2,7 @@ export SHELL=/bin/bash
 export SUDO_GID=1001
 export NVM_INC=/home/jules/.nvm/versions/node/v22.17.1/include/node
 export TERM_PROGRAM_VERSION=3.4
-export TMUX=/tmp/tmux-1001/default,2155,0
+export TMUX=/tmp/tmux-1001/default,1300,0
 export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 export SUDO_COMMAND=/usr/bin/bash -c echo "${BASHPID}"
 export tmux new-session -d -s 'default' -c /app && tmux set-option remain-on-exit on
