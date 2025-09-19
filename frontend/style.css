@@ -713,3 +713,20 @@ body {
 #auth-loading {
     margin-top: 20px;
 }
+
+@media (max-width: 480px) {
+    .auth-box {
+        padding: 20px;
+        margin: 10px;
+    }
+
+    .pin-inputs {
+        gap: 5px;
+    }
+
+    .pin-inputs input {
+        width: 38px;
+        height: 50px;
+        font-size: 1.5em;
+    }
+}
