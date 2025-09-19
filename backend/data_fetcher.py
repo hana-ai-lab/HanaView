@@ -1230,6 +1230,110 @@ class MarketDataFetcher:
                     self.data[f'{index_base_name}_heatmap'] = {}
                 self.data[f'{index_base_name}_heatmap']['ai_commentary'] = "AI解説の生成中にエラーが発生しました。"
 
+    def generate_indicators_commentary(self):
+        """Generates AI commentary for economic indicators and earnings announcements."""
+        logger.info("Generating indicators AI commentary...")
+
+        # --- Part 1: Economic Indicators ---
+        try:
+            economic_indicators = self.data.get("indicators", {}).get("economic", [])
+
+            # Define keywords for impactful 2-star indicators
+            impactful_keywords = [
+                "物価", "CPI", "PPI", # Inflation
+                "雇用", "失業", # Employment
+                "小売", # Retail
+                "GDP", # GDP
+                "生産", "PMI", "ISM", # Manufacturing/Services
+                "住宅", "建設", # Housing
+                "景況感", "消費者信頼感" # Sentiment
+            ]
+
+            # 3-star indicators are always included.
+            # 2-star indicators are included if their name contains an impactful keyword.
+            important_indicators = [
+                ind for ind in economic_indicators
+                if ind.get("importance") and (
+                    "★★★" in ind["importance"] or
+                    (
+                        "★★" in ind["importance"] and
+                        any(keyword in ind.get("name", "") for keyword in impactful_keywords)
+                    )
+                )
+            ]
+
+            if not important_indicators:
+                self.data['indicators']['economic_commentary'] = "なし"
+            else:
+                indicators_str = "\n".join([f"- {ind['name']} (重要度: {ind['importance']}): 前回: {ind['previous']}, 市場予測: {ind['forecast']}" for ind in important_indicators])
+
+                prompt = f"""
+                あなたはプロの金融アナリストです。以下の経済指標について、日本の個人投資家向けに市場への影響を解説してください。
+
+                # 分析対象の経済指標
+                {indicators_str}
+
+                # 指示
+                1.  各指標について、予測に対する結果が「上振れ」「下振れ」「同等」だった場合に、それぞれ株式市場（特に米国株や日本株）にどのような影響（ポジティブ/ネガティブ）を与えうるかを簡潔に解説してください。
+                2.  複数の指標について解説する場合は、指標ごとに改行して見やすくしてください。
+                3.  専門用語を避け、分かりやすい言葉で説明してください。
+                4.  解説文のみを生成してください。前置きや結びの言葉は不要です。
+
+                # 出力形式
+                {{
+                    "response": "ここに解説を記述"
+                }}
+                """
+                messages = [
+                    {"role": "system", "content": "You are a helpful assistant designed to output JSON."},
+                    {"role": "user", "content": prompt}
+                ]
+                response_json = self._call_openai_api(messages=messages, max_tokens=600, response_format={"type": "json_object"})
+                self.data['indicators']['economic_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
+
+        except Exception as e:
+            logger.error(f"Failed to generate economic indicators commentary: {e}")
+            self.data['indicators']['economic_commentary'] = "経済指標のAI解説生成中にエラーが発生しました。"
+
+        # --- Part 2: Earnings Announcements ---
+        try:
+            us_earnings = self.data.get("indicators", {}).get("us_earnings", [])
+            jp_earnings = self.data.get("indicators", {}).get("jp_earnings", [])
+            all_earnings = us_earnings + jp_earnings
+
+            if not all_earnings:
+                self.data['indicators']['earnings_commentary'] = "なし"
+            else:
+                earnings_str = "\n".join([f"- {earning['company']} ({earning['ticker']})" for earning in all_earnings])
+
+                prompt = f"""
+                あなたはプロの金融アナリストです。以下の企業の決算発表について、日本の個人投資家向けに解説してください。
+
+                # 注目決算リスト
+                {earnings_str}
+
+                # 指示
+                1.  リストされた各企業について、現在の市場がどのような期待を持っているか（ポジティブかネガティブか、注目点は何か）を解説してください。
+                2.  決算発表後の株価が、市場の期待を「上回った場合」と「下回った場合」にそれぞれどのような反応を示す可能性があるかを説明してください。
+                3.  企業ごとに改行して見やすくしてください。
+                4.  解説文のみを生成してください。前置きや結びの言葉は不要です。
+
+                # 出力形式
+                {{
+                    "response": "ここに解説を記述"
+                }}
+                """
+                messages = [
+                    {"role": "system", "content": "You are a helpful assistant designed to output JSON."},
+                    {"role": "user", "content": prompt}
+                ]
+                response_json = self._call_openai_api(messages=messages, max_tokens=800, response_format={"type": "json_object"})
+                self.data['indicators']['earnings_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
+
+        except Exception as e:
+            logger.error(f"Failed to generate earnings commentary: {e}")
+            self.data['indicators']['earnings_commentary'] = "注目決算のAI解説生成中にエラーが発生しました。"
+
     def cleanup_old_data(self):
         """Deletes data files older than 7 days."""
         logger.info("Cleaning up old data files...")
@@ -1304,6 +1408,13 @@ class MarketDataFetcher:
             logger.error(f"Could not generate heatmap AI commentary: {e}")
             self.data['sp500_heatmap']['ai_commentary'] = f"Error: {e}"
             self.data['nasdaq_heatmap']['ai_commentary'] = f"Error: {e}"
+
+        try:
+            self.generate_indicators_commentary()
+        except MarketDataError as e:
+            logger.error(f"Could not generate indicators AI commentary: {e}")
+            self.data['indicators']['economic_commentary'] = f"Error: {e}"
+            self.data['indicators']['earnings_commentary'] = f"Error: {e}"
 
         try:
             self.generate_column()

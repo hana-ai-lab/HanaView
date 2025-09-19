@@ -525,6 +525,19 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             economicCard.innerHTML += '<p>本日予定されている重要経済指標はありません。</p>';
         }
+
+        // --- AI Commentary for Economic Indicators ---
+        if (indicators.economic_commentary) {
+            const commentaryDiv = document.createElement('div');
+            commentaryDiv.className = 'ai-commentary'; // Reuse existing style
+            commentaryDiv.innerHTML = `
+                <div class="ai-header">
+                    <h3>AI解説</h3>
+                </div>
+                <p>${indicators.economic_commentary.replace(/\n/g, '<br>')}</p>
+            `;
+            economicCard.appendChild(commentaryDiv);
+        }
         container.appendChild(economicCard);
 
         // --- Part 2: Earnings Announcements ---
@@ -585,6 +598,19 @@ document.addEventListener('DOMContentLoaded', () => {
             earningsCard.appendChild(earningsTable);
         } else {
             earningsCard.innerHTML += '<p>今日予定されている注目決算はありません。</p>';
+        }
+
+        // --- AI Commentary for Earnings ---
+        if (indicators.earnings_commentary) {
+            const commentaryDiv = document.createElement('div');
+            commentaryDiv.className = 'ai-commentary'; // Reuse existing style
+            commentaryDiv.innerHTML = `
+                <div class="ai-header">
+                    <h3>AI解説</h3>
+                </div>
+                <p>${indicators.earnings_commentary.replace(/\n/g, '<br>')}</p>
+            `;
+            earningsCard.appendChild(commentaryDiv);
         }
         container.appendChild(earningsCard);
     }
