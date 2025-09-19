@@ -49,6 +49,10 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchDataAndRender();
             initSwipeNavigation();
             dashboardContainer.dataset.initialized = 'true';
+
+            // Initialize notifications after dashboard is shown
+            const notificationManager = new NotificationManager();
+            notificationManager.init();
         }
     }
 
@@ -1102,21 +1106,3 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Initialize notification manager when dashboard is shown
-document.addEventListener('DOMContentLoaded', () => {
-    // Find the existing showDashboard function and modify it
-    const originalShowDashboard = window.showDashboard || function() {};
-
-    window.showDashboard = function() {
-        // Call original functionality
-        originalShowDashboard.apply(this, arguments);
-
-        const dashboardContainer = document.querySelector('.container');
-        if (dashboardContainer && !dashboardContainer.dataset.notificationsInitialized) {
-            // Initialize notifications
-            const notificationManager = new NotificationManager();
-            notificationManager.init();
-            dashboardContainer.dataset.notificationsInitialized = 'true';
-        }
-    };
-});
