@@ -165,15 +165,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const targetTab = e.target.dataset.tab;
 
+            // Scroll to the top of the page before switching the tab
+            window.scrollTo(0, 0);
+
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.toggle('active', button.dataset.tab === targetTab);
             });
             document.querySelectorAll('.tab-pane').forEach(pane => {
                 pane.classList.toggle('active', pane.id === `${targetTab}-content`);
             });
-
-            // Scroll to the top of the page
-            window.scrollTo(0, 0);
         });
     }
 
