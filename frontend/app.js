@@ -171,6 +171,9 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.tab-pane').forEach(pane => {
                 pane.classList.toggle('active', pane.id === `${targetTab}-content`);
             });
+
+            // Scroll to the top of the page
+            window.scrollTo(0, 0);
         });
     }
 
