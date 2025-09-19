@@ -1077,18 +1077,30 @@ class MarketDataFetcher:
 ## 市場の構図（参考データ）
 {market_structure_str}
 """
-        prompt = base_prompt_intro + specific_instructions + data_section
+        json_format_instruction = """
+
+# 出力形式
+必ず以下のJSON形式で出力してください：
+{{
+    "response": "ここに指示に従って生成した解説全文を記述"
+}}
+
+重要：出力は有効なJSONである必要があります。"""
+        prompt = base_prompt_intro + specific_instructions + data_section + json_format_instruction
 
         try:
             messages = [
-                {"role": "system", "content": "あなたはプロの金融アナリストです。"},
+                {"role": "system", "content": "You are a helpful assistant designed to output JSON. Your response must be valid JSON."},
                 {"role": "user", "content": prompt}
             ]
-            generated_text = self._call_openai_api(
+            response_json = self._call_openai_api(
                 messages=messages,
                 max_tokens=1000,
-                temperature=0.6
+                temperature=0.6,
+                response_format={"type": "json_object"}
             )
+
+            generated_text = response_json.get('response', 'AIコラムの生成に失敗しました。')
 
             # レポートタイプのキーを決定
             report_type = "weekly_report" if today.weekday() == 0 else "daily_report"
