@@ -1,5 +1,148 @@
 document.addEventListener('DOMContentLoaded', () => {
-    console.log("HanaView Dashboard Initialized");
+    console.log("HanaView App Initializing...");
+
+    // --- DOM Element References ---
+    const authContainer = document.getElementById('auth-container');
+    const dashboardContainer = document.querySelector('.container');
+    const pinInputsContainer = document.getElementById('pin-inputs');
+    const pinInputs = pinInputsContainer ? Array.from(pinInputsContainer.querySelectorAll('input')) : [];
+    const authErrorMessage = document.getElementById('auth-error-message');
+    const authSubmitButton = document.getElementById('auth-submit-button');
+    const authLoadingSpinner = document.getElementById('auth-loading');
+
+    // --- State ---
+    let failedAttempts = 0;
+    const MAX_ATTEMPTS = 5;
+
+    // --- Main App Logic ---
+
+    async function initializeApp() {
+        try {
+            const response = await fetch('/api/auth/check');
+            if (!response.ok) {
+                // If the check fails for reasons other than 404 or 401, treat as unauthenticated
+                console.error('Auth check failed with status:', response.status);
+                showAuthScreen();
+                return;
+            }
+            const data = await response.json();
+            if (data.authenticated) {
+                showDashboard();
+            } else {
+                showAuthScreen();
+            }
+        } catch (error) {
+            console.error('Error during authentication check:', error);
+            showAuthScreen(); // Default to showing auth screen on error
+            if(authErrorMessage) authErrorMessage.textContent = 'サーバーとの通信に失敗しました。';
+        }
+    }
+
+    function showDashboard() {
+        if (authContainer) authContainer.style.display = 'none';
+        if (dashboardContainer) dashboardContainer.style.display = 'block';
+
+        // Initialize dashboard features only once
+        if (!dashboardContainer.dataset.initialized) {
+            console.log("HanaView Dashboard Initialized");
+            initTabs();
+            fetchDataAndRender();
+            initSwipeNavigation();
+            dashboardContainer.dataset.initialized = 'true';
+        }
+    }
+
+    function showAuthScreen() {
+        if (authContainer) authContainer.style.display = 'flex';
+        if (dashboardContainer) dashboardContainer.style.display = 'none';
+        setupAuthForm();
+    }
+
+    function setupAuthForm() {
+        if (!pinInputsContainer) return;
+
+        pinInputs.forEach((input, index) => {
+            input.addEventListener('input', () => {
+                // Move to next input if a digit is entered
+                if (input.value.length === 1 && index < pinInputs.length - 1) {
+                    pinInputs[index + 1].focus();
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                // Move to previous input on backspace if current is empty
+                if (e.key === 'Backspace' && input.value.length === 0 && index > 0) {
+                    pinInputs[index - 1].focus();
+                }
+            });
+
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pasteData = e.clipboardData.getData('text').trim();
+                if (/^\d{6}$/.test(pasteData)) {
+                    pasteData.split('').forEach((char, i) => {
+                        if (pinInputs[i]) {
+                            pinInputs[i].value = char;
+                        }
+                    });
+                    pinInputs[pinInputs.length - 1].focus();
+                    handleAuthSubmit(); // Automatically submit on successful paste
+                }
+            });
+        });
+
+        if (authSubmitButton) {
+            authSubmitButton.addEventListener('click', handleAuthSubmit);
+        }
+    }
+
+    async function handleAuthSubmit() {
+        const pin = pinInputs.map(input => input.value).join('');
+
+        if (pin.length !== 6) {
+            if(authErrorMessage) authErrorMessage.textContent = '6桁のコードを入力してください。';
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const response = await fetch('/api/auth/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pin }),
+            });
+
+            if (response.ok) {
+                showDashboard();
+            } else {
+                failedAttempts++;
+                pinInputs.forEach(input => input.value = '');
+                pinInputs[0].focus();
+
+                if (failedAttempts >= MAX_ATTEMPTS) {
+                    if(authErrorMessage) authErrorMessage.textContent = '認証に失敗しました。';
+                    pinInputs.forEach(input => input.disabled = true);
+                    if(authSubmitButton) authSubmitButton.disabled = true;
+                } else {
+                    if(authErrorMessage) authErrorMessage.textContent = '正しい認証コードを入力してください。';
+                }
+            }
+        } catch (error) {
+            console.error('Error during PIN verification:', error);
+            if(authErrorMessage) authErrorMessage.textContent = '認証中にエラーが発生しました。';
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function setLoading(isLoading) {
+        if (authLoadingSpinner) authLoadingSpinner.style.display = isLoading ? 'block' : 'none';
+        if (authSubmitButton) authSubmitButton.style.display = isLoading ? 'none' : 'block';
+    }
+
+
+    // --- Existing Dashboard Functions ---
 
     // --- Service Worker Registration ---
     if ('serviceWorker' in navigator) {
@@ -681,7 +824,14 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchDataAndRender() {
         try {
             const response = await fetch('/api/data');
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            if (!response.ok) {
+                // If token expires, API will return 401, redirect to auth
+                if (response.status === 401) {
+                    showAuthScreen();
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             console.log("Data fetched successfully:", data);
 
@@ -713,9 +863,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('dashboard-content').innerHTML = `<div class="card"><p>データの読み込みに失敗しました: ${error.message}</p></div>`;
         }
     }
-
-    initTabs();
-    fetchDataAndRender();
 
     // --- Swipe Navigation for Tabs ---
     function initSwipeNavigation() {
@@ -766,5 +913,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    initSwipeNavigation();
+    // --- App Initialization ---
+    initializeApp();
 });

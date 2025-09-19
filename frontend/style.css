@@ -614,3 +614,102 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #aaa;
 }
+
+/* --- Authentication Styles --- */
+.auth-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.auth-box {
+    background-color: var(--card-background);
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 100%;
+    max-width: 400px;
+    margin: 20px;
+}
+
+.auth-box h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+}
+
+.auth-box p {
+    margin-bottom: 25px;
+    color: var(--text-secondary);
+}
+
+.pin-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.pin-inputs input {
+    width: 45px;
+    height: 55px;
+    font-size: 2em;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    -moz-appearance: textfield; /* Firefox */
+}
+
+.pin-inputs input::-webkit-outer-spin-button,
+.pin-inputs input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.pin-inputs input:focus {
+    border-color: var(--tab-text);
+    box-shadow: 0 0 0 3px rgba(15, 177, 189, 0.2);
+}
+
+.error-message {
+    color: #d32f2f; /* Red color for errors */
+    min-height: 20px; /* Reserve space to prevent layout shift */
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.auth-button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: var(--tab-active-text);
+    background-color: var(--tab-active-bg);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.auth-button:hover {
+    background-color: #0d8a93; /* Darker shade of tab-active-bg */
+}
+
+.auth-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#auth-loading {
+    margin-top: 20px;
+}

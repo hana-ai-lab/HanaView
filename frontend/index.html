@@ -11,7 +11,24 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
-    <div class="container">
+    <div id="auth-container" class="auth-container">
+        <div class="auth-box">
+            <h2>認証が必要です</h2>
+            <p>6桁の認証コードを入力してください</p>
+            <div id="pin-inputs" class="pin-inputs">
+                <input type="tel" maxlength="1" pattern="[0-9]" required>
+                <input type="tel" maxlength="1" pattern="[0-9]" required>
+                <input type="tel" maxlength="1" pattern="[0-9]" required>
+                <input type="tel" maxlength="1" pattern="[0-9]" required>
+                <input type="tel" maxlength="1" pattern="[0-9]" required>
+                <input type="tel" maxlength="1" pattern="[0-9]" required>
+            </div>
+            <p id="auth-error-message" class="error-message"></p>
+            <button id="auth-submit-button" class="auth-button">認証</button>
+            <div id="auth-loading" class="loading-spinner" style="display: none;"></div>
+        </div>
+    </div>
+    <div class="container" style="display: none;">
         <header class="header">
             <h1>朝の<span style="color: #FF00A5;">５分</span>市況チェック</h1>
             <p class="last-updated" id="last-updated">Last updated: --</p>
