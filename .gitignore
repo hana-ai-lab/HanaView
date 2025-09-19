@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment
+.env
+
+# Data files
+data/security_keys.json
+data/data.json
+data/data_*.json
+data/data_raw.json
+
+# Log files
+logs/
+*.log
+
+# IDE / Editor folders
+.vscode/
+.idea/
