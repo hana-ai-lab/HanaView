@@ -15,8 +15,8 @@ printenv | sed 's/^\(.*\)$/export \1/g' > "${ENV_FILE}"
 chmod +x "${ENV_FILE}"
 
 echo "Starting cron daemon..."
-# Start cron in the background
-cron
+# Start the cron service in the background
+service cron start
 
 echo "Starting Uvicorn web server..."
 # Start the uvicorn server in the foreground.
