@@ -801,7 +801,7 @@ class MarketDataFetcher:
                 raise MarketDataError("E005", "Empty response from OpenAI API")
 
             if response.choices[0].finish_reason == 'length':
-                logger.warning(f"Response may be truncated due to max_tokens limit ({max_tokens}).")
+                logger.warning("Response may be truncated due to max_completion_tokens limit.")
 
             content = response.choices[0].message.content
 
@@ -812,15 +812,11 @@ class MarketDataFetcher:
             content = content.strip()
             logger.debug(f"Received response (first 200 chars): {content[:200]}")
 
-            # If JSON format is expected, parse it. Otherwise, return raw text.
-            if response_format and response_format.get("type") == "json_object":
-                try:
-                    return json.loads(content)
-                except json.JSONDecodeError as je:
-                    logger.error(f"Failed to parse JSON response: {content[:500]}")
-                    raise MarketDataError("E005", f"Invalid JSON response: {je}") from je
-            else:
-                return content
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError as je:
+                logger.error(f"Failed to parse JSON response: {content[:500]}")
+                raise MarketDataError("E005", f"Invalid JSON response: {je}") from je
 
         except openai.APIError as api_error:
             logger.error(f"OpenAI API error: {api_error}")
