@@ -15,3 +15,5 @@ matplotlib==3.8.0
 pytz==2024.1
 httpx==0.25.2
 python-jose[cryptography]==3.3.0
+pywebpush==2.0.1
+cryptography==46.0.1

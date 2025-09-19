@@ -916,3 +916,207 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- App Initialization ---
     initializeApp();
 });
+
+// Add this to the existing app.js file
+
+class NotificationManager {
+    constructor() {
+        this.isSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+        this.vapidPublicKey = null;
+    }
+
+    async init() {
+        if (!this.isSupported) {
+            console.log('Push notifications are not supported');
+            return;
+        }
+
+        // Get VAPID public key from server
+        try {
+            const response = await fetch('/api/vapid-public-key');
+            const data = await response.json();
+            this.vapidPublicKey = data.public_key;
+        } catch (error) {
+            console.error('Failed to get VAPID public key:', error);
+            return;
+        }
+
+        // Check and request permission
+        await this.requestPermission();
+
+        // Subscribe to push notifications
+        await this.subscribeUser();
+
+        // Listen for messages from Service Worker
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data.type === 'data-updated') {
+                console.log('Data updated via background sync at', event.data.timestamp || 'now');
+                // Refresh the dashboard
+                if (typeof fetchDataAndRender === 'function') {
+                    fetchDataAndRender();
+                }
+                // Show a subtle notification in the UI
+                const time = event.data.timestamp === '6:30' ? '朝6:30の' : '';
+                this.showInAppNotification(`${time}データが更新されました`);
+            }
+        });
+    }
+
+    async requestPermission() {
+        const permission = await Notification.requestPermission();
+        console.log('Notification permission:', permission);
+        return permission === 'granted';
+    }
+
+    async subscribeUser() {
+        try {
+            const registration = await navigator.serviceWorker.ready;
+
+            // Check if already subscribed
+            let subscription = await registration.pushManager.getSubscription();
+
+            if (!subscription) {
+                // Convert VAPID key
+                const convertedVapidKey = this.urlBase64ToUint8Array(this.vapidPublicKey);
+
+                // Subscribe
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: convertedVapidKey
+                });
+
+                // Send subscription to server
+                await this.sendSubscriptionToServer(subscription);
+                console.log('User is subscribed to push notifications for 6:30 AM updates');
+            }
+
+            // Register background sync
+            if ('sync' in registration) {
+                await registration.sync.register('data-sync');
+                console.log('Background sync registered for 6:30 AM updates');
+            }
+
+            // Register periodic background sync if available
+            if ('periodicSync' in registration) {
+                const status = await navigator.permissions.query({
+                    name: 'periodic-background-sync',
+                });
+                if (status.state === 'granted') {
+                    await registration.periodicSync.register('data-update', {
+                        minInterval: 60 * 60 * 1000 // 1 hour
+                    });
+                    console.log('Periodic background sync registered');
+                }
+            }
+        } catch (error) {
+            console.error('Failed to subscribe user:', error);
+        }
+    }
+
+    async sendSubscriptionToServer(subscription) {
+        try {
+            const response = await fetch('/api/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(subscription)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to send subscription to server');
+            }
+        } catch (error) {
+            console.error('Error sending subscription to server:', error);
+        }
+    }
+
+    urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+            .replace(/\-/g, '+')
+            .replace(/_/g, '/');
+
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    showInAppNotification(message) {
+        // Create a toast notification in the UI
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #006B6B;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+        `;
+
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 300);
+        }, 3000);
+    }
+}
+
+// Add CSS for toast animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// Initialize notification manager when dashboard is shown
+document.addEventListener('DOMContentLoaded', () => {
+    // Find the existing showDashboard function and modify it
+    const originalShowDashboard = window.showDashboard || function() {};
+
+    window.showDashboard = function() {
+        // Call original functionality
+        originalShowDashboard.apply(this, arguments);
+
+        const dashboardContainer = document.querySelector('.container');
+        if (dashboardContainer && !dashboardContainer.dataset.notificationsInitialized) {
+            // Initialize notifications
+            const notificationManager = new NotificationManager();
+            notificationManager.init();
+            dashboardContainer.dataset.notificationsInitialized = 'true';
+        }
+    };
+});

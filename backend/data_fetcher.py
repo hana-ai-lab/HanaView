@@ -1453,10 +1453,102 @@ class MarketDataFetcher:
         return self.data
 
 
+    def send_push_notifications(self):
+        """レポート生成完了後にPush通知を送信"""
+        logger.info("Sending push notifications for 6:30 AM update...")
+
+        try:
+            # セキュリティマネージャーの初期化
+            from .security_manager import security_manager
+            security_manager.data_dir = DATA_DIR
+            security_manager.initialize()
+
+            from pywebpush import webpush, WebPushException
+
+            # サブスクリプション読み込み
+            subscriptions_file = os.path.join(DATA_DIR, 'push_subscriptions.json')
+            if not os.path.exists(subscriptions_file):
+                logger.info("No push subscriptions found")
+                return 0
+
+            with open(subscriptions_file, 'r') as f:
+                subscriptions = json.load(f)
+
+            if not subscriptions:
+                logger.info("No active push subscriptions")
+                return 0
+
+            # 通知データ作成
+            jst = timezone(timedelta(hours=9))
+            current_time = datetime.now(jst)
+
+            notification_data = {
+                "title": "朝の市況データ更新完了",
+                "body": f"{current_time.strftime('%H:%M')}の最新データが準備できました",
+                "type": "data-update"
+            }
+
+            sent_count = 0
+            failed_subscriptions = []
+
+            # 各サブスクリプションに送信
+            for sub_id, subscription in subscriptions.items():
+                try:
+                    webpush(
+                        subscription_info=subscription,
+                        data=json.dumps(notification_data),
+                        vapid_private_key=security_manager.vapid_private_key,
+                        vapid_claims={
+                            "sub": security_manager.vapid_subject,
+                        }
+                    )
+                    sent_count += 1
+                    logger.debug(f"Notification sent to subscription {sub_id}")
+                except WebPushException as ex:
+                    logger.error(f"Failed to send notification to {sub_id}: {ex}")
+                    # 410エラーは無効なサブスクリプション
+                    if ex.response and ex.response.status_code == 410:
+                        failed_subscriptions.append(sub_id)
+                except Exception as e:
+                    logger.error(f"Unexpected error sending notification to {sub_id}: {e}")
+
+            # 無効なサブスクリプションを削除
+            if failed_subscriptions:
+                for sub_id in failed_subscriptions:
+                    del subscriptions[sub_id]
+                with open(subscriptions_file, 'w') as f:
+                    json.dump(subscriptions, f)
+                logger.info(f"Removed {len(failed_subscriptions)} invalid subscriptions")
+
+            logger.info(f"Push notifications sent successfully: {sent_count} sent")
+            return sent_count
+
+        except ImportError as e:
+            logger.error(f"Failed to import required modules for push notifications: {e}")
+            return 0
+        except Exception as e:
+            logger.error(f"Unexpected error sending push notifications: {e}")
+            return 0
+
+    def generate_report_with_notification(self):
+        """レポート生成とPush通知を一体化"""
+        # 既存のレポート生成
+        self.generate_report()
+
+        # 成功したら通知を送信（失敗してもレポート生成は成功とする）
+        try:
+            if self.data.get('date'):
+                sent_count = self.send_push_notifications()
+                logger.info(f"Report generation complete. Notifications sent: {sent_count}")
+            else:
+                logger.warning("Report generated but no date found, skipping notifications")
+        except Exception as e:
+            logger.error(f"Failed to send notifications after report generation: {e}")
+            # 通知失敗してもレポート生成は成功とする
+
+
 if __name__ == '__main__':
     # For running the script directly, load .env file.
-    # In the Docker container, cron runs this from /app/backend,
-    # so it should find the .env file in /app.
     from dotenv import load_dotenv
     load_dotenv()
 
@@ -1467,7 +1559,8 @@ if __name__ == '__main__':
         if sys.argv[1] == 'fetch':
             fetcher.fetch_all_data()
         elif sys.argv[1] == 'generate':
-            fetcher.generate_report()
+            # generateコマンドの場合は通知も送信
+            fetcher.generate_report_with_notification()
         else:
             print("Usage: python backend/data_fetcher.py [fetch|generate]")
     else:

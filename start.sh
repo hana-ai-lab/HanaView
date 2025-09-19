@@ -14,11 +14,11 @@ echo "Creating cron environment file at ${ENV_FILE}"
 printenv | sed 's/^\(.*\)$/export \1/g' > "${ENV_FILE}"
 chmod +x "${ENV_FILE}"
 
-echo "Starting cron daemon..."
-# Start the cron service in the background
-service cron start
+# echo "Starting cron daemon..."
+# # Start the cron service in the background
+# service cron start
 
 echo "Starting Uvicorn web server..."
 # Start the uvicorn server in the foreground.
 # This will be the main process that keeps the container running.
-exec uvicorn main:app --host 0.0.0.0 --port 8000 --app-dir /app/backend
+exec uvicorn backend.main:app --host 0.0.0.0 --port 8000
