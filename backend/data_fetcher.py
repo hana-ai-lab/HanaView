@@ -143,9 +143,11 @@ class MarketDataFetcher:
         if not api_key:
             logger.warning(f"[E001] {ERROR_CODES['E001']} AI functions will be skipped.")
             self.openai_client = None
+            self.openai_model = None
         else:
             http_client = httpx.Client(trust_env=False)
             self.openai_client = openai.OpenAI(api_key=api_key, http_client=http_client)
+            self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4-turbo") # Fallback for safety
 
     def _clean_non_compliant_floats(self, obj):
         if isinstance(obj, dict):
@@ -769,15 +771,15 @@ class MarketDataFetcher:
         return heatmaps
 
     # --- AI Generation ---
-    def _call_openai_api(self, model, messages, max_tokens, temperature=0.7, response_format=None, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
+    def _call_openai_api(self, messages, max_tokens, temperature=0.7, response_format=None, top_p=1.0, frequency_penalty=0.0, presence_penalty=0.0):
         """A generalized method to call the OpenAI Chat Completions API."""
-        if not self.openai_client:
-            raise MarketDataError("E005", "OpenAI client is not available.")
+        if not self.openai_client or not self.openai_model:
+            raise MarketDataError("E005", "OpenAI client or model is not available.")
         try:
-            logger.info(f"Calling OpenAI API (model={model}, max_tokens={max_tokens})...")
+            logger.info(f"Calling OpenAI API (model={self.openai_model}, max_tokens={max_tokens})...")
 
             kwargs = {
-                "model": model,
+                "model": self.openai_model,
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
@@ -887,7 +889,6 @@ class MarketDataFetcher:
                 {"role": "user", "content": prompt}
             ]
             response_json = self._call_openai_api(
-                model="gpt-4-turbo",
                 messages=messages,
                 max_tokens=500,
                 response_format={"type": "json_object"}
@@ -972,7 +973,6 @@ class MarketDataFetcher:
                 {"role": "user", "content": prompt}
             ]
             news_data = self._call_openai_api(
-                model="gpt-4-turbo",
                 messages=messages,
                 max_tokens=1024,
                 response_format={"type": "json_object"}
@@ -1088,7 +1088,6 @@ class MarketDataFetcher:
                 {"role": "user", "content": prompt}
             ]
             generated_text = self._call_openai_api(
-                model="gpt-4-turbo",
                 messages=messages,
                 max_tokens=1000,
                 temperature=0.6
@@ -1218,7 +1217,6 @@ class MarketDataFetcher:
                     {"role": "user", "content": prompt}
                 ]
                 response_json = self._call_openai_api(
-                    model="gpt-4-turbo",
                     messages=messages,
                     max_tokens=700,
                     response_format={"type": "json_object"}
