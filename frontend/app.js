@@ -165,15 +165,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const targetTab = e.target.dataset.tab;
 
-            // Scroll to the top of the page before switching the tab
-            window.scrollTo(0, 0);
-
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.toggle('active', button.dataset.tab === targetTab);
             });
             document.querySelectorAll('.tab-pane').forEach(pane => {
                 pane.classList.toggle('active', pane.id === `${targetTab}-content`);
             });
+
+            // Scroll to the top of the page after a short delay.
+            // This ensures the browser has processed the tab change before scrolling,
+            // which is more reliable, especially after swipe gestures.
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 0);
         });
     }
 
