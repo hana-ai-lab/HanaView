@@ -14,7 +14,7 @@ echo "Creating cron environment file at ${ENV_FILE}"
 printenv | sed 's/^\(.*\)$/export \1/g' > "${ENV_FILE}"
 chmod +x "${ENV_FILE}"
 
-# echo "Starting cron daemon..."
+echo "Starting cron daemon..."
 # # Start the cron service in the background
 service cron start
 
