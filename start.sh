@@ -16,7 +16,7 @@ chmod +x "${ENV_FILE}"
 
 # echo "Starting cron daemon..."
 # # Start the cron service in the background
-# service cron start
+service cron start
 
 echo "Starting Uvicorn web server..."
 # Start the uvicorn server in the foreground.
