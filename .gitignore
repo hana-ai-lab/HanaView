@@ -20,3 +20,6 @@ logs/
 # IDE / Editor folders
 .vscode/
 .idea/
+
+# Generated images
+frontend/fear_and_greed_gauge.png
