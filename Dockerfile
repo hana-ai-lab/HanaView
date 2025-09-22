@@ -31,9 +31,14 @@ COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 RUN chmod +x /app/backend/run_job.sh
 
-# Add cron job
-COPY backend/cron_jobs /etc/cron.d/hanaview-cron
-RUN chmod 0644 /etc/cron.d/hanaview-cron
+# Add cron job - 重要: cron.dではなくcrontabに直接登録
+RUN echo "15 6 * * 1-5 . /app/backend/cron-env.sh && /app/backend/run_job.sh fetch >> /app/logs/cron_error.log 2>&1" > /tmp/cronjob && \
+    echo "30 6 * * 1-5 . /app/backend/cron-env.sh && /app/backend/run_job.sh generate >> /app/logs/cron_error.log 2>&1" >> /tmp/cronjob && \
+    crontab /tmp/cronjob && \
+    rm /tmp/cronjob
+
+# Create logs directory
+RUN mkdir -p /app/logs
 
 # Start services using the startup script
 CMD [ "/app/start.sh" ]
