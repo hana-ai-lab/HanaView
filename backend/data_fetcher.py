@@ -336,6 +336,14 @@ class MarketDataFetcher:
             indicators = []
             jst = timezone(timedelta(hours=9))
             dt_now_jst = datetime.now(jst)
+
+            # On Monday (weekday() == 0), fetch for the whole week. Otherwise, for the next 26 hours.
+            if dt_now_jst.weekday() == 0:
+                end_date = dt_now_jst + timedelta(days=6)
+            else:
+                end_date = dt_now_jst + timedelta(hours=26)
+            logger.info(f"Fetching economic indicators until {end_date.strftime('%Y-%m-%d %H:%M')}")
+
             current_date_str = ""
 
             for row in table.find('tbody').find_all('tr'):
@@ -363,7 +371,7 @@ class MarketDataFetcher:
                     tdatetime = datetime.strptime(full_date_str, '%Y/%m/%d %H:%M') + date_offset
                     tdatetime_aware = tdatetime.replace(tzinfo=jst)
 
-                    if not (dt_now_jst - timedelta(hours=2) < tdatetime_aware < dt_now_jst + timedelta(hours=26)):
+                    if not (dt_now_jst - timedelta(hours=2) < tdatetime_aware < end_date):
                         continue
 
                     importance_str = cells[2 + cell_offset].text.strip()
@@ -416,6 +424,16 @@ class MarketDataFetcher:
             html_content = response.content.decode('shift_jis', errors='replace')
             tables = pd.read_html(StringIO(html_content), flavor='lxml')
             
+            jst = timezone(timedelta(hours=9))
+            dt_now_jst = dt_now.astimezone(jst)
+
+            # On Monday (weekday() == 0), fetch for the whole week. Otherwise, for the next 26 hours.
+            if dt_now_jst.weekday() == 0:
+                end_date = dt_now_jst + timedelta(days=6)
+            else:
+                end_date = dt_now_jst + timedelta(hours=26)
+            logger.info(f"Fetching US earnings until {end_date.strftime('%Y-%m-%d')}")
+
             earnings = []
             for df in tables:
                 if df.empty: continue
@@ -431,9 +449,14 @@ class MarketDataFetcher:
 
                         if ticker and date_str and time_str:
                             text0 = date_str[:10] + " " + time_str[:5]
-                            tdatetime = datetime.strptime(text0, '%Y/%m/%d %H:%M') + timedelta(hours=13)
-                            if tdatetime > dt_now - timedelta(hours=2):
-                                earnings.append({"datetime": tdatetime.strftime('%m/%d %H:%M'), "ticker": ticker, "company": f"({company_name})" if company_name else "", "type": "us_earnings"})
+                            tdatetime_naive = datetime.strptime(text0, '%Y/%m/%d %H:%M')
+                            # The source provides US time. A simple +13h is used as an approximation for JST.
+                            tdatetime_jst = tdatetime_naive + timedelta(hours=13)
+                            # Make it aware for comparison
+                            tdatetime_aware_jst = jst.localize(tdatetime_jst)
+
+                            if dt_now_jst - timedelta(hours=2) < tdatetime_aware_jst < end_date:
+                                earnings.append({"datetime": tdatetime_aware_jst.strftime('%m/%d %H:%M'), "ticker": ticker, "company": f"({company_name})" if company_name else "", "type": "us_earnings"})
                     except Exception as e:
                         logger.debug(f"Skipping row {i} in US earnings: {e}")
             
@@ -443,6 +466,21 @@ class MarketDataFetcher:
             logger.error(f"Error fetching US earnings: {e}")
             self.data['indicators']['us_earnings'] = []
 
+    def _parse_jp_earnings_date(self, date_str, current_datetime, tz):
+        """Helper to parse Japanese date strings and handle year-end rollover."""
+        match = re.search(r'(\d{1,2})月(\d{1,2})日.*?(\d{1,2}):(\d{1,2})', date_str)
+        if match:
+            month, day, hour, minute = map(int, match.groups())
+            year = current_datetime.year
+            # Handle year rollover: if the parsed month is less than the current month,
+            # it's likely for the next year (e.g., parsing Jan data in Dec).
+            if month < current_datetime.month:
+                year += 1
+
+            naive_dt = datetime(year, month, day, hour, minute)
+            return tz.localize(naive_dt)
+        return None
+
     def _fetch_jp_earnings(self, dt_now):
         """Fetch Japanese earnings calendar from Monex using curl_cffi."""
         logger.info("Fetching Japanese earnings calendar from Monex...")
@@ -451,6 +489,16 @@ class MarketDataFetcher:
             response.raise_for_status()
             html_content = response.content.decode('shift_jis', errors='replace')
             tables = pd.read_html(StringIO(html_content), flavor='lxml')
+
+            jst = timezone(timedelta(hours=9))
+            dt_now_jst = dt_now.astimezone(jst)
+
+            # On Monday (weekday() == 0), fetch for the whole week. Otherwise, for the next 26 hours.
+            if dt_now_jst.weekday() == 0:
+                end_date = dt_now_jst + timedelta(days=6)
+            else:
+                end_date = dt_now_jst + timedelta(hours=26)
+            logger.info(f"Fetching JP earnings until {end_date.strftime('%Y-%m-%d')}")
 
             earnings = []
             for df in tables:
@@ -470,7 +518,10 @@ class MarketDataFetcher:
                             elif not company_name and len(val) > 2 and val != 'nan' and not val.strip().isdigit() and "/" not in val: company_name = val.strip()[:20]
 
                         if ticker and date_time_str:
-                             earnings.append({"datetime": date_time_str[:16], "ticker": ticker, "company": f"({company_name})" if company_name else "", "type": "jp_earnings"})
+                            # Parse the Japanese date string into an aware datetime object, handling year-end
+                            parsed_date_jst = self._parse_jp_earnings_date(date_time_str, dt_now_jst, jst)
+                            if parsed_date_jst and (dt_now_jst - timedelta(hours=2) < parsed_date_jst < end_date):
+                                earnings.append({"datetime": parsed_date_jst.strftime('%m/%d %H:%M'), "ticker": ticker, "company": f"({company_name})" if company_name else "", "type": "jp_earnings"})
                     except Exception as e:
                         logger.debug(f"Skipping row {i} in JP earnings: {e}")
 
