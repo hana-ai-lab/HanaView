@@ -593,9 +593,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const jpEarnings = indicators.jp_earnings || [];
 
         // --- Time-based filtering logic ---
-        // lastUpdated is expected to be a JST string like "2025-09-10T07:59:24.957729+09:00"
         const now = lastUpdated ? new Date(lastUpdated) : new Date();
         const year = now.getFullYear();
+        // getDay() returns 0 for Sunday, 1 for Monday, etc.
+        const isMonday = now.getDay() === 1;
 
         let startTime = new Date(now);
         startTime.setHours(7, 0, 0, 0); // Set to 07:00:00.000 JST today
@@ -606,7 +607,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let endTime = new Date(startTime);
-        endTime.setDate(endTime.getDate() + 1); // This correctly sets it to the next day at 07:00 JST
+        // On Monday, show the whole week. Otherwise, show the next 24 hours.
+        if (isMonday) {
+            endTime.setDate(endTime.getDate() + 7);
+        } else {
+            endTime.setDate(endTime.getDate() + 1);
+        }
 
         const parseDateTime = (dateTimeStr) => {
             if (!dateTimeStr || !/^\d{2}\/\d{2} \d{2}:\d{2}$/.test(dateTimeStr)) {
@@ -622,9 +628,10 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Part 1: Economic Calendar (High Importance) ---
         const economicCard = document.createElement('div');
         economicCard.className = 'card';
-        economicCard.innerHTML = '<h3>経済指標カレンダー (重要度★★以上)</h3>';
+        const economicTitle = isMonday ? '<h3>今週の経済指標カレンダー (重要度★★以上)</h3>' : '<h3>経済指標カレンダー (重要度★★以上)</h3>';
+        economicCard.innerHTML = economicTitle;
 
-        const todaysIndicators = economicIndicators.filter(ind => {
+        const relevantIndicators = economicIndicators.filter(ind => {
             const importanceOk = typeof ind.importance === 'string' && (ind.importance.match(/★/g) || []).length >= 2;
             if (!importanceOk) return false;
 
@@ -643,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return eventTime >= startTime && eventTime < endTime;
         });
 
-        if (todaysIndicators.length > 0) {
+        if (relevantIndicators.length > 0) {
             const table = document.createElement('table');
             table.className = 'indicators-table';
             table.innerHTML = `
@@ -659,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </thead>
             `;
             const tbody = document.createElement('tbody');
-            todaysIndicators.forEach(ind => {
+            relevantIndicators.forEach(ind => {
                 const row = document.createElement('tr');
                 const starCount = (ind.importance.match(/★/g) || []).length;
                 const importanceStars = '★'.repeat(starCount);
@@ -677,7 +684,8 @@ document.addEventListener('DOMContentLoaded', () => {
             table.appendChild(tbody);
             economicCard.appendChild(table);
         } else {
-            economicCard.innerHTML += '<p>本日予定されている重要経済指標はありません。</p>';
+            const emptyMessage = isMonday ? '<p>今週予定されている重要経済指標はありません。</p>' : '<p>本日予定されている重要経済指標はありません。</p>';
+            economicCard.innerHTML += emptyMessage;
         }
 
         // --- AI Commentary for Economic Indicators ---
@@ -697,7 +705,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Part 2: Earnings Announcements ---
         const allEarnings = [...usEarnings, ...jpEarnings];
 
-        const todaysEarnings = allEarnings.filter(earning => {
+        const relevantEarnings = allEarnings.filter(earning => {
             const eventTime = parseDateTime(earning.datetime);
              if (!eventTime) return false;
 
@@ -714,7 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Sort by datetime.
-        todaysEarnings.sort((a, b) => {
+        relevantEarnings.sort((a, b) => {
             const timeA = parseDateTime(a.datetime);
             const timeB = parseDateTime(b.datetime);
             if (!timeA) return 1;
@@ -724,9 +732,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const earningsCard = document.createElement('div');
         earningsCard.className = 'card';
-        earningsCard.innerHTML = '<h3>注目決算</h3>';
+        const earningsTitle = isMonday ? '<h3>今週の注目決算</h3>' : '<h3>注目決算</h3>';
+        earningsCard.innerHTML = earningsTitle;
 
-        if (todaysEarnings.length > 0) {
+        if (relevantEarnings.length > 0) {
             const earningsTable = document.createElement('table');
             earningsTable.className = 'indicators-table'; // reuse style
             earningsTable.innerHTML = `
@@ -739,7 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </thead>
             `;
             const tbody = document.createElement('tbody');
-            todaysEarnings.forEach(earning => {
+            relevantEarnings.forEach(earning => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${earning.datetime || '--'}</td>
@@ -751,7 +760,8 @@ document.addEventListener('DOMContentLoaded', () => {
             earningsTable.appendChild(tbody);
             earningsCard.appendChild(earningsTable);
         } else {
-            earningsCard.innerHTML += '<p>今日予定されている注目決算はありません。</p>';
+            const emptyMessage = isMonday ? '<p>今週予定されている注目決算はありません。</p>' : '<p>今日予定されている注目決算はありません。</p>';
+            earningsCard.innerHTML += emptyMessage;
         }
 
         // --- AI Commentary for Earnings ---
