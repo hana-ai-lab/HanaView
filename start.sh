@@ -59,4 +59,4 @@ tail -f /var/log/cron.log /app/logs/cron_error.log 2>/dev/null &
 
 echo "Starting Uvicorn web server..."
 # Start the uvicorn server in the foreground.
-exec uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+exec uvicorn backend.main:app --host 0.0.0.0 --port 8000
