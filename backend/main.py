@@ -119,7 +119,7 @@ def verify_pin(pin_data: PinVerification, response: Response):
             max_age=expires.total_seconds(),
             samesite="lax",
             path="/",
-            secure=False  # Set to True in production with HTTPS
+            secure=True  # Set to True for PWA compatibility
         )
         return {"message": "Authentication successful"}
     else:

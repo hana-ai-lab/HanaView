@@ -133,9 +133,29 @@ self.addEventListener('notificationclick', event => {
   event.notification.close();
 
   if (event.action === 'view' || !event.action) {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
+    const promiseChain = syncData().then(() => {
+      return clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true
+      }).then(windowClients => {
+        let matchingClient = null;
+        for (let i = 0; i < windowClients.length; i++) {
+          const client = windowClients[i];
+          if (client.url.endsWith('/')) {
+            matchingClient = client;
+            break;
+          }
+        }
+
+        if (matchingClient) {
+          return matchingClient.focus();
+        } else {
+          return clients.openWindow('/');
+        }
+      });
+    });
+
+    event.waitUntil(promiseChain);
   }
 });
 
