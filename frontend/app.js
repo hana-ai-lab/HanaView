@@ -592,62 +592,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const usEarnings = indicators.us_earnings || [];
         const jpEarnings = indicators.jp_earnings || [];
 
-        // --- Time-based filtering logic ---
-        const now = lastUpdated ? new Date(lastUpdated) : new Date();
-        const year = now.getFullYear();
-        // getDay() returns 0 for Sunday, 1 for Monday, etc.
-        const isMonday = now.getDay() === 1;
-
-        let startTime = new Date(now);
-        startTime.setHours(7, 0, 0, 0); // Set to 07:00:00.000 JST today
-
-        // If current time is before 7 AM JST, the window is from yesterday 7 AM to today 7 AM.
-        if (now.getHours() < 7) {
-            startTime.setDate(startTime.getDate() - 1);
-        }
-
-        let endTime = new Date(startTime);
-        // On Monday, show the whole week. Otherwise, show the next 24 hours.
-        if (isMonday) {
-            endTime.setDate(endTime.getDate() + 7);
-        } else {
-            endTime.setDate(endTime.getDate() + 1);
-        }
-
-        const parseDateTime = (dateTimeStr) => {
-            if (!dateTimeStr || !/^\d{2}\/\d{2} \d{2}:\d{2}$/.test(dateTimeStr)) {
-                return null; // Invalid format
-            }
-            const [datePart, timePart] = dateTimeStr.split(' ');
-            const [month, day] = datePart.split('/');
-            const [hour, minute] = timePart.split(':');
-            // Note: month is 0-indexed in JS Date
-            return new Date(year, parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
-        };
-
         // --- Part 1: Economic Calendar (High Importance) ---
         const economicCard = document.createElement('div');
         economicCard.className = 'card';
-        const economicTitle = isMonday ? '<h3>今週の経済指標カレンダー (重要度★★以上)</h3>' : '<h3>経済指標カレンダー (重要度★★以上)</h3>';
+        // Simplified title, as the backend now controls the data window
+        const economicTitle = '<h3>経済指標カレンダー (重要度★★以上)</h3>';
         economicCard.innerHTML = economicTitle;
 
+        // Filter only by importance, not by time. The backend delivers the correct time window.
         const relevantIndicators = economicIndicators.filter(ind => {
-            const importanceOk = typeof ind.importance === 'string' && (ind.importance.match(/★/g) || []).length >= 2;
-            if (!importanceOk) return false;
-
-            const eventTime = parseDateTime(ind.datetime);
-            if (!eventTime) return false;
-
-            // Handle year change for events in early January when 'now' is in late December
-            if (now.getMonth() === 11 && eventTime.getMonth() === 0) {
-              eventTime.setFullYear(year + 1);
-            }
-            // Handle year change for events in late December when 'now' is in early January
-            else if (now.getMonth() === 0 && eventTime.getMonth() === 11) {
-              eventTime.setFullYear(year - 1);
-            }
-
-            return eventTime >= startTime && eventTime < endTime;
+            return typeof ind.importance === 'string' && (ind.importance.match(/★/g) || []).length >= 2;
         });
 
         if (relevantIndicators.length > 0) {
@@ -684,8 +638,8 @@ document.addEventListener('DOMContentLoaded', () => {
             table.appendChild(tbody);
             economicCard.appendChild(table);
         } else {
-            const emptyMessage = isMonday ? '<p>今週予定されている重要経済指標はありません。</p>' : '<p>本日予定されている重要経済指標はありません。</p>';
-            economicCard.innerHTML += emptyMessage;
+            // Simplified empty message
+            economicCard.innerHTML += '<p>予定されている重要経済指標はありません。</p>';
         }
 
         // --- AI Commentary for Economic Indicators ---
@@ -705,26 +659,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- Part 2: Earnings Announcements ---
         const allEarnings = [...usEarnings, ...jpEarnings];
 
-        const relevantEarnings = allEarnings.filter(earning => {
-            const eventTime = parseDateTime(earning.datetime);
-             if (!eventTime) return false;
-
-            // Handle year change for events in early January when 'now' is in late December
-            if (now.getMonth() === 11 && eventTime.getMonth() === 0) {
-              eventTime.setFullYear(year + 1);
-            }
-            // Handle year change for events in late December when 'now' is in early January
-            else if (now.getMonth() === 0 && eventTime.getMonth() === 11) {
-              eventTime.setFullYear(year - 1);
-            }
-
-            return eventTime && eventTime >= startTime && eventTime < endTime;
-        });
+        // No time-based filtering needed here either.
+        const relevantEarnings = allEarnings;
 
         // Sort by datetime.
+        // Helper function to parse 'MM/DD HH:MM' to a comparable format
+        const parseDateTimeForSort = (dateTimeStr) => {
+            if (!dateTimeStr) return 0;
+            const [datePart, timePart] = dateTimeStr.split(' ');
+            const [month, day] = datePart.split('/');
+            const [hour, minute] = timePart.split(':');
+            // Create a number like MMDDHHMM for easy sorting
+            return parseInt(`${month}${day}${hour}${minute}`, 10);
+        };
         relevantEarnings.sort((a, b) => {
-            const timeA = parseDateTime(a.datetime);
-            const timeB = parseDateTime(b.datetime);
+            const timeA = parseDateTimeForSort(a.datetime);
+            const timeB = parseDateTimeForSort(b.datetime);
             if (!timeA) return 1;
             if (!timeB) return -1;
             return timeA - timeB;
@@ -732,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const earningsCard = document.createElement('div');
         earningsCard.className = 'card';
-        const earningsTitle = isMonday ? '<h3>今週の注目決算</h3>' : '<h3>注目決算</h3>';
+        const earningsTitle = '<h3>注目決算</h3>';
         earningsCard.innerHTML = earningsTitle;
 
         if (relevantEarnings.length > 0) {
@@ -760,8 +710,8 @@ document.addEventListener('DOMContentLoaded', () => {
             earningsTable.appendChild(tbody);
             earningsCard.appendChild(earningsTable);
         } else {
-            const emptyMessage = isMonday ? '<p>今週予定されている注目決算はありません。</p>' : '<p>今日予定されている注目決算はありません。</p>';
-            earningsCard.innerHTML += emptyMessage;
+            // Simplified empty message
+            earningsCard.innerHTML += '<p>予定されている注目決算はありません。</p>';
         }
 
         // --- AI Commentary for Earnings ---
