@@ -792,6 +792,33 @@ document.addEventListener('DOMContentLoaded', () => {
         container.appendChild(card);
     }
 
+    function renderAllData(data) {
+        console.log("Rendering all data:", data);
+
+        const lastUpdatedEl = document.getElementById('last-updated');
+        if (data.last_updated) {
+            lastUpdatedEl.textContent = `Last updated: ${new Date(data.last_updated).toLocaleString('ja-JP')}`;
+        }
+
+        renderMarketOverview(document.getElementById('market-content'), data.market, data.last_updated);
+        renderNews(document.getElementById('news-content'), data.news, data.last_updated);
+
+        // Render NASDAQ Heatmaps
+        renderGridHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'Nasdaq (1-Day)', data.nasdaq_heatmap_1d);
+        renderGridHeatmap(document.getElementById('nasdaq-heatmap-1w'), 'Nasdaq (1-Week)', data.nasdaq_heatmap_1w);
+        renderGridHeatmap(document.getElementById('nasdaq-heatmap-1m'), 'Nasdaq (1-Month)', data.nasdaq_heatmap_1m);
+        renderHeatmapCommentary(document.getElementById('nasdaq-commentary'), data.nasdaq_heatmap?.ai_commentary, data.last_updated);
+
+        // Render S&P 500 & Sector ETF Combined Heatmaps
+        renderGridHeatmap(document.getElementById('sp500-heatmap-1d'), 'SP500 & Sector ETFs (1-Day)', data.sp500_combined_heatmap_1d);
+        renderGridHeatmap(document.getElementById('sp500-heatmap-1w'), 'SP500 & Sector ETFs (1-Week)', data.sp500_combined_heatmap_1w);
+        renderGridHeatmap(document.getElementById('sp500-heatmap-1m'), 'SP500 & Sector ETFs (1-Month)', data.sp500_combined_heatmap_1m);
+        renderHeatmapCommentary(document.getElementById('sp500-commentary'), data.sp500_heatmap?.ai_commentary, data.last_updated);
+
+        renderIndicators(document.getElementById('indicators-content'), data.indicators, data.last_updated);
+        renderColumn(document.getElementById('column-content'), data.column);
+    }
+
     async function fetchDataAndRender() {
         try {
             const response = await fetch('/api/data');
@@ -804,30 +831,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
-            console.log("Data fetched successfully:", data);
-
-            const lastUpdatedEl = document.getElementById('last-updated');
-            if (data.last_updated) {
-                lastUpdatedEl.textContent = `Last updated: ${new Date(data.last_updated).toLocaleString('ja-JP')}`;
-            }
-
-            renderMarketOverview(document.getElementById('market-content'), data.market, data.last_updated);
-            renderNews(document.getElementById('news-content'), data.news, data.last_updated);
-
-            // Render NASDAQ Heatmaps
-            renderGridHeatmap(document.getElementById('nasdaq-heatmap-1d'), 'Nasdaq (1-Day)', data.nasdaq_heatmap_1d);
-            renderGridHeatmap(document.getElementById('nasdaq-heatmap-1w'), 'Nasdaq (1-Week)', data.nasdaq_heatmap_1w);
-            renderGridHeatmap(document.getElementById('nasdaq-heatmap-1m'), 'Nasdaq (1-Month)', data.nasdaq_heatmap_1m);
-            renderHeatmapCommentary(document.getElementById('nasdaq-commentary'), data.nasdaq_heatmap?.ai_commentary, data.last_updated);
-
-            // Render S&P 500 & Sector ETF Combined Heatmaps
-            renderGridHeatmap(document.getElementById('sp500-heatmap-1d'), 'SP500 & Sector ETFs (1-Day)', data.sp500_combined_heatmap_1d);
-            renderGridHeatmap(document.getElementById('sp500-heatmap-1w'), 'SP500 & Sector ETFs (1-Week)', data.sp500_combined_heatmap_1w);
-            renderGridHeatmap(document.getElementById('sp500-heatmap-1m'), 'SP500 & Sector ETFs (1-Month)', data.sp500_combined_heatmap_1m);
-            renderHeatmapCommentary(document.getElementById('sp500-commentary'), data.sp500_heatmap?.ai_commentary, data.last_updated);
-
-            renderIndicators(document.getElementById('indicators-content'), data.indicators, data.last_updated);
-            renderColumn(document.getElementById('column-content'), data.column);
+            renderAllData(data);
 
         } catch (error) {
             console.error("Failed to fetch data:", error);
@@ -920,11 +924,11 @@ class NotificationManager {
 
         // Listen for messages from Service Worker
         navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data.type === 'data-updated') {
+            if (event.data.type === 'data-updated' && event.data.data) {
                 console.log('Data updated via background sync at', event.data.timestamp || 'now');
-                // Refresh the dashboard
-                if (typeof fetchDataAndRender === 'function') {
-                    fetchDataAndRender();
+                // Refresh the dashboard with the data from the service worker
+                if (typeof renderAllData === 'function') {
+                    renderAllData(event.data.data);
                 }
                 // Show a subtle notification in the UI
                 const time = event.data.timestamp === '6:30' ? '朝6:30の' : '';
