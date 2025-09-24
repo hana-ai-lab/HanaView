@@ -841,7 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tabContainer = document.querySelector('.tab-container');
         let touchstartX = 0;
         let touchendX = 0;
-        const swipeThreshold = 50; // Minimum horizontal distance for a swipe
+        const swipeThreshold = 100; // Minimum horizontal distance for a swipe
 
         contentArea.addEventListener('touchstart', e => {
             touchstartX = e.changedTouches[0].screenX;
