@@ -144,21 +144,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Always fetch data to ensure it's fresh, especially if a previous attempt was interrupted.
         fetchDataAndRender();
 
-        if (isInitialized) {
-            return; // Don't re-initialize tabs, swipes, or notifications
+        if (!isInitialized) {
+            // First-time initialization
+            console.log("HanaView Dashboard Initialized");
+            initTabs();
+            initSwipeNavigation();
+            dashboardContainer.dataset.initialized = 'true';
         }
 
-        // First-time initialization
-        console.log("HanaView Dashboard Initialized");
-        initTabs();
-        initSwipeNavigation();
-        dashboardContainer.dataset.initialized = 'true';
-
-        // Delay notification init to prevent UI blocking from the permission prompt
-        setTimeout(() => {
-            const notificationManager = new NotificationManager();
-            notificationManager.init();
-        }, 500); // Increased delay for robustness
+        // Initialize notifications after authentication is confirmed.
+        const notificationManager = new NotificationManager();
+        notificationManager.init();
     }
 
     function showAuthScreen() {
@@ -478,16 +474,36 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 class NotificationManager {
-    constructor() { this.isSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window; this.vapidPublicKey = null; }
+    constructor() {
+        this.isSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+        this.vapidPublicKey = null;
+    }
+
     async init() {
-        if (!this.isSupported) return;
+        if (!this.isSupported) {
+            console.log('Push notifications are not supported');
+            return;
+        }
+
+        // Skip if not authenticated
+        if (!AuthManager.isAuthenticated()) {
+            console.log('Not authenticated, skipping push notification setup');
+            return;
+        }
+
+        // Get VAPID public key from server
         try {
-            const fetcher = typeof fetchWithAuth === 'function' ? fetchWithAuth : fetch;
-            const response = await fetcher('/api/vapid-public-key');
-            this.vapidPublicKey = (await response.json()).public_key;
-        } catch (error) { console.error('Failed to get VAPID public key:', error); return; }
+            const response = await fetchWithAuth('/api/vapid-public-key');
+            const data = await response.json();
+            this.vapidPublicKey = data.public_key;
+        } catch (error) {
+            console.error('Failed to get VAPID public key:', error);
+            return;
+        }
+
         await this.requestPermission();
         await this.subscribeUser();
+
         navigator.serviceWorker.addEventListener('message', event => {
             if (event.data.type === 'data-updated' && event.data.data) {
                 console.log('Data updated via background sync at', event.data.timestamp || 'now');
@@ -496,27 +512,47 @@ class NotificationManager {
             }
         });
     }
-    async requestPermission() { return await Notification.requestPermission(); }
+
+    async requestPermission() {
+        return await Notification.requestPermission();
+    }
+
     async subscribeUser() {
         try {
             const reg = await navigator.serviceWorker.ready;
             let sub = await reg.pushManager.getSubscription();
             if (!sub) {
-                sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey) });
+                sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
+                });
                 await this.sendSubscriptionToServer(sub);
             }
+            // Background sync registrations can stay as they are beneficial if supported
             if ('sync' in reg) { await reg.sync.register('data-sync'); }
             if ('periodicSync' in reg && (await navigator.permissions.query({ name: 'periodic-background-sync' })).state === 'granted') {
                 await reg.periodicSync.register('data-update', { minInterval: 3600000 });
             }
-        } catch (error) { console.error('Failed to subscribe user:', error); }
+        } catch (error) {
+            console.error('Failed to subscribe user:', error);
+        }
     }
+
     async sendSubscriptionToServer(subscription) {
         try {
-            const fetcher = typeof fetchWithAuth === 'function' ? fetchWithAuth : fetch;
-            const response = await fetcher('/api/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(subscription) });
-            if (!response.ok) throw new Error('Failed to send subscription');
-        } catch (error) { console.error('Error sending subscription:', error); }
+            // Use fetchWithAuth to include the auth header
+            const response = await fetchWithAuth('/api/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(subscription)
+            });
+            if (!response.ok) {
+                throw new Error('Failed to send subscription to server');
+            }
+            console.log('Push subscription successfully registered');
+        } catch (error) {
+            console.error('Error sending subscription to server:', error);
+        }
     }
     urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
