@@ -42,7 +42,7 @@ HanaViewは、個人投資家が毎朝の市場チェックを効率化するた
 
 1.  **実行中のコンテナ内でbashセッションを開始します。**
     ```bash
-    docker-compose exec app bash
+    docker compose exec app bash
     ```
 
 2.  **データ取得 (fetch) を実行します。**
