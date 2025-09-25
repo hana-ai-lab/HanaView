@@ -11,6 +11,48 @@ const APP_SHELL_URLS = [
   'https://d3js.org/d3.v7.min.js'
 ];
 const DATA_URL = '/api/data';
+const DB_NAME = 'HanaViewDB';
+const DB_VERSION = 1;
+const TOKEN_STORE_NAME = 'auth-tokens';
+
+// --- IndexedDB Helper ---
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = () => reject("Error opening DB");
+    request.onsuccess = () => resolve(request.result);
+    request.onupgradeneeded = event => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(TOKEN_STORE_NAME)) {
+        db.createObjectStore(TOKEN_STORE_NAME, { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+async function getTokenFromDB() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([TOKEN_STORE_NAME], 'readonly');
+    const store = transaction.objectStore(TOKEN_STORE_NAME);
+    const request = store.get('auth_token');
+    request.onerror = () => reject("Error fetching token");
+    request.onsuccess = () => {
+      resolve(request.result ? request.result.value : null);
+    };
+  });
+}
+
+// --- Authenticated Fetch for Service Worker ---
+async function fetchWithAuthFromSW(url, options = {}) {
+  const token = await getTokenFromDB();
+  const headers = new Headers(options.headers || {});
+  if (token) {
+    headers.append('Authorization', `Bearer ${token}`);
+  }
+  return fetch(url, { ...options, headers });
+}
+
 
 // Install event
 self.addEventListener('install', event => {
@@ -21,7 +63,7 @@ self.addEventListener('install', event => {
       return cache.addAll(APP_SHELL_URLS);
     })
   );
-  self.skipWaiting(); // Activate worker immediately
+  self.skipWaiting();
 });
 
 // Activate event
@@ -39,13 +81,15 @@ self.addEventListener('activate', event => {
       );
     })
   );
-  self.clients.claim(); // Take control of all clients immediately
+  self.clients.claim();
 });
 
-// Fetch event
+// Fetch event (Stale-while-revalidate for data)
 self.addEventListener('fetch', event => {
   const { request } = event;
 
+  // For data API, use stale-while-revalidate.
+  // The request from the app already has auth headers.
   if (request.url.includes(DATA_URL)) {
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
@@ -64,140 +108,81 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // For app shell, use cache-first.
   event.respondWith(
     caches.match(request).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(request);
+      return cachedResponse || fetch(request);
     })
   );
 });
 
 // Push notification handler
 self.addEventListener('push', event => {
-  console.log('Service Worker: Push notification received at 6:30 AM');
-
-  let data = {};
+  console.log('Service Worker: Push notification received');
+  let data = { title: 'HanaView更新', body: '新しいデータがあります' };
   if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      data = {
-        title: 'HanaView更新',
-        body: event.data.text()
-      };
-    }
+    try { data = event.data.json(); } catch (e) { /* ignore */ }
   }
 
   const options = {
-    body: data.body || '朝6:30の市況データが更新されました',
+    body: data.body,
     icon: './icons/icon-192x192.png',
     badge: './icons/icon-192x192.png',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1,
-      type: data.type || 'data-update'
-    },
-    actions: [
-      {
-        action: 'view',
-        title: '表示',
-        icon: './icons/icon-192x192.png'
-      },
-      {
-        action: 'close',
-        title: '閉じる',
-        icon: './icons/icon-192x192.png'
-      }
-    ]
+    actions: [{ action: 'view', title: '表示' }]
   };
 
   event.waitUntil(
-    self.registration.showNotification(
-      data.title || 'HanaView更新通知',
-      options
-    ).then(() => {
-      // Trigger background sync after showing notification
-      if ('sync' in self.registration) {
-        return self.registration.sync.register('data-sync');
-      }
-    })
+    self.registration.showNotification(data.title, options)
+      .then(() => self.registration.sync.register('data-sync'))
   );
 });
 
 // Notification click handler
 self.addEventListener('notificationclick', event => {
-  console.log('Notification clicked:', event.action);
   event.notification.close();
-
-  if (event.action === 'view' || !event.action) {
-    const promiseChain = syncData().then(() => {
-      return clients.matchAll({
-        type: 'window',
-        includeUncontrolled: true
-      }).then(windowClients => {
-        let matchingClient = null;
-        for (let i = 0; i < windowClients.length; i++) {
-          const client = windowClients[i];
-          if (client.url.endsWith('/')) {
-            matchingClient = client;
-            break;
-          }
-        }
-
-        if (matchingClient) {
-          return matchingClient.focus();
-        } else {
+  event.waitUntil(
+    syncData().then(() => {
+      return clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then(windowClients => {
+          const client = windowClients.find(c => c.url.endsWith('/'));
+          if (client) return client.focus();
           return clients.openWindow('/');
-        }
-      });
-    });
-
-    event.waitUntil(promiseChain);
-  }
+        });
+    })
+  );
 });
 
 // Background sync handler
 self.addEventListener('sync', event => {
-  console.log('Service Worker: Background sync triggered');
-
+  console.log('Service Worker: Background sync triggered', event.tag);
   if (event.tag === 'data-sync') {
     event.waitUntil(syncData());
   }
 });
 
-// Background sync function
+// --- UPDATED: Background sync function ---
 async function syncData() {
   try {
-    console.log('Service Worker: Syncing data from 6:30 AM report...');
-
-    // Fetch latest data
-    const response = await fetch('/api/data');
+    console.log('Service Worker: Syncing data...');
+    // Use the authenticated fetch function
+    const response = await fetchWithAuthFromSW(DATA_URL);
     if (response.ok) {
       const data = await response.json();
-
-      // Update cache
       const cache = await caches.open(CACHE_NAME);
-      await cache.put('/api/data', new Response(JSON.stringify(data)));
+      // Use a fixed URL for the data cache key
+      await cache.put(DATA_URL, new Response(JSON.stringify(data)));
 
-      // Notify all clients to refresh
-      const clients = await self.clients.matchAll();
-      clients.forEach(client => {
-        client.postMessage({
-          type: 'data-updated',
-          data: data,
-          timestamp: '6:30'
-        });
+      const allClients = await self.clients.matchAll();
+      allClients.forEach(client => {
+        client.postMessage({ type: 'data-updated', data: data, timestamp: new Date().toLocaleTimeString() });
       });
-
-      console.log('Service Worker: Data sync completed for 6:30 AM update');
+      console.log('Service Worker: Data sync completed.');
       return true;
     }
+    console.error('Service Worker: Sync failed with status', response.status);
   } catch (error) {
     console.error('Service Worker: Sync failed', error);
-    throw error; // Retry sync later
+    throw error;
   }
 }
 
