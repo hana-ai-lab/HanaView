@@ -139,16 +139,26 @@ document.addEventListener('DOMContentLoaded', () => {
         if (authContainer) authContainer.style.display = 'none';
         if (dashboardContainer) dashboardContainer.style.display = 'block';
 
-        if (!dashboardContainer.dataset.initialized) {
-            console.log("HanaView Dashboard Initialized");
-            initTabs();
-            fetchDataAndRender();
-            initSwipeNavigation();
-            dashboardContainer.dataset.initialized = 'true';
+        const isInitialized = dashboardContainer.dataset.initialized === 'true';
 
+        // Always fetch data to ensure it's fresh, especially if a previous attempt was interrupted.
+        fetchDataAndRender();
+
+        if (isInitialized) {
+            return; // Don't re-initialize tabs, swipes, or notifications
+        }
+
+        // First-time initialization
+        console.log("HanaView Dashboard Initialized");
+        initTabs();
+        initSwipeNavigation();
+        dashboardContainer.dataset.initialized = 'true';
+
+        // Delay notification init to prevent UI blocking from the permission prompt
+        setTimeout(() => {
             const notificationManager = new NotificationManager();
             notificationManager.init();
-        }
+        }, 500); // Increased delay for robustness
     }
 
     function showAuthScreen() {
