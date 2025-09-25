@@ -3,13 +3,13 @@ import os
 import json
 import re
 from datetime import datetime, timedelta, timezone
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, HTTPException, Header, status
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from jose import JWTError, jwt
 from dotenv import load_dotenv
 from pywebpush import webpush, WebPushException
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Import security manager
 from .security_manager import security_manager
@@ -45,7 +45,6 @@ async def startup_event():
 AUTH_PIN = os.getenv("AUTH_PIN", "123456")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_DAYS", 30))
-TOKEN_NAME = "access_token"
 
 # In-memory storage for subscriptions
 push_subscriptions: Dict[str, Any] = {}
@@ -81,70 +80,90 @@ def get_latest_data_file():
     return os.path.join(DATA_DIR, latest_file)
 
 # --- Authentication Dependency ---
-credentials_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
-    detail="Could not validate credentials",
-    headers={"WWW-Authenticate": "Bearer"},
-)
+async def get_current_user(authorization: Optional[str] = Header(None)):
+    """Authorizationヘッダーからトークンを取得して検証"""
 
-async def get_current_user(request: Request):
-    """Dependency to get and validate the current user from the auth token cookie."""
-    token = request.cookies.get(TOKEN_NAME)
-    if token is None:
-        raise credentials_exception
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header missing",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Bearer トークンの形式チェック
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header format",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = authorization[7:]  # "Bearer " を除去
+
     try:
         payload = jwt.decode(token, security_manager.jwt_secret, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
-            raise credentials_exception
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload"
+            )
     except JWTError:
-        raise credentials_exception
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials"
+        )
+
     return username
 
 # --- API Endpoints ---
 
 @app.post("/api/auth/verify")
-def verify_pin(pin_data: PinVerification, response: Response):
-    """
-    Verifies the 6-digit PIN. If correct, sets an HTTPOnly cookie.
-    """
+def verify_pin(pin_data: PinVerification):
+    """PINを検証し、JWTトークンを返す（クッキーは設定しない）"""
+
     if pin_data.pin == AUTH_PIN:
         expires = timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
-        access_token = create_access_token(data={"sub": "user"}, expires_delta=expires)
-
-        response.set_cookie(
-            key=TOKEN_NAME,
-            value=access_token,
-            httponly=True,
-            max_age=expires.total_seconds(),
-            samesite="lax",
-            path="/",
-            secure=True  # Set to True for PWA compatibility
+        access_token = create_access_token(
+            data={"sub": "user"},
+            expires_delta=expires
         )
-        return {"message": "Authentication successful"}
+
+        # トークンをJSONレスポンスで返す（クッキー設定なし）
+        return {
+            "success": True,
+            "token": access_token,
+            "expires_in": int(expires.total_seconds()),
+            "expires_at": (datetime.now(timezone.utc) + expires).isoformat()
+        }
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect authentication code",
+            detail="Incorrect authentication code"
         )
 
 @app.get("/api/auth/check")
-def check_authentication(request: Request):
-    """
-    Checks if the user has a valid authentication cookie.
-    """
-    token = request.cookies.get(TOKEN_NAME)
-    if not token:
+def check_authentication(authorization: Optional[str] = Header(None)):
+    """認証状態を確認（Authorizationヘッダーを使用）"""
+
+    if not authorization or not authorization.startswith("Bearer "):
         return {"authenticated": False}
+
+    token = authorization[7:]
 
     try:
         payload = jwt.decode(token, security_manager.jwt_secret, algorithms=[ALGORITHM])
-        if payload:
+        if payload and payload.get("sub"):
             return {"authenticated": True}
     except JWTError:
-        return {"authenticated": False}
+        pass
 
     return {"authenticated": False}
+
+@app.post("/api/auth/logout")
+def logout():
+    """ログアウト（クライアント側でトークンを削除）"""
+    return {"success": True, "message": "Please clear local token"}
 
 @app.get("/api/health")
 def health_check():
