@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const DB_VERSION = 1;
     const TOKEN_STORE_NAME = 'auth-tokens';
 
-    // --- NEW: Authentication Management (with IndexedDB support) ---
+    // --- Authentication Management (with IndexedDB support) ---
     class AuthManager {
         static TOKEN_KEY = 'auth_token';
         static EXPIRY_KEY = 'auth_expiry';
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- NEW: Authenticated Fetch Wrapper ---
+    // --- Authenticated Fetch Wrapper ---
     async function fetchWithAuth(url, options = {}) {
         const authHeaders = AuthManager.getAuthHeaders();
         const response = await fetch(url, {
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return response;
     }
 
-    // --- Main App Logic (Updated) ---
+    // --- Main App Logic ---
 
     async function initializeApp() {
         try {
@@ -130,41 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Error during authentication check:', error);
                 if (authErrorMessage) authErrorMessage.textContent = 'サーバーとの通信に失敗しました。';
             }
-            // Ensure auth screen is shown even on fetch failure
             showAuthScreen();
         }
-    }
-
-    function showDashboard() {
-        if (authContainer) authContainer.style.display = 'none';
-        if (dashboardContainer) dashboardContainer.style.display = 'block';
-
-        const isInitialized = dashboardContainer.dataset.initialized === 'true';
-
-        // Always fetch data to ensure it's fresh, especially if a previous attempt was interrupted.
-        fetchDataAndRender();
-
-        if (isInitialized) {
-            return; // Don't re-initialize tabs, swipes, or notifications
-        }
-
-        // First-time initialization
-        console.log("HanaView Dashboard Initialized");
-        initTabs();
-        initSwipeNavigation();
-        dashboardContainer.dataset.initialized = 'true';
-
-        // Delay notification init to prevent UI blocking from the permission prompt
-        setTimeout(() => {
-            const notificationManager = new NotificationManager();
-            notificationManager.init();
-        }, 500); // Increased delay for robustness
-    }
-
-    function showAuthScreen() {
-        if (authContainer) authContainer.style.display = 'flex';
-        if (dashboardContainer) dashboardContainer.style.display = 'none';
-        setupAuthForm();
     }
 
     function setupAuthForm() {
@@ -240,22 +207,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function logout() {
-        await AuthManager.clearAuthData();
-        showAuthScreen();
-        console.log('Logged out successfully');
-        try {
-            await fetchWithAuth('/api/auth/logout', { method: 'POST' });
-        } catch (e) { /* Ignore */ }
-    }
-
     function setLoading(isLoading) {
         if (authLoadingSpinner) authLoadingSpinner.style.display = isLoading ? 'block' : 'none';
         const submitBtn = document.getElementById('auth-submit-button');
         if (submitBtn) submitBtn.style.display = isLoading ? 'none' : 'block';
     }
-
-    // --- Existing Dashboard Functions (Now using fetchWithAuth) ---
 
     async function fetchDataAndRender() {
         try {
@@ -271,7 +227,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Service Worker Registration ---
+    // --- Dashboard and UI ---
+    let notificationManagerInstance = null;
+
+    function showDashboard() {
+        if (authContainer) authContainer.style.display = 'none';
+        if (dashboardContainer) dashboardContainer.style.display = 'block';
+
+        if (!dashboardContainer.dataset.initialized) {
+            console.log("HanaView Dashboard Initialized");
+            initTabs();
+            fetchDataAndRender();
+            initSwipeNavigation();
+            dashboardContainer.dataset.initialized = 'true';
+        }
+
+        // Initialize notification manager with a delay to avoid iOS PWA issues
+        setTimeout(() => {
+            if (!notificationManagerInstance) {
+                console.log("Creating NotificationManager instance");
+                notificationManagerInstance = new NotificationManager();
+                notificationManagerInstance.init();
+            } else {
+                // Resend token to Service Worker on subsequent dashboard views
+                notificationManagerInstance.sendTokenToServiceWorker();
+            }
+        }, 1000);  // 1-second delay
+    }
+
+    function showAuthScreen() {
+        if (authContainer) authContainer.style.display = 'flex';
+        if (dashboardContainer) dashboardContainer.style.display = 'none';
+        setupAuthForm();
+    }
+
+    // --- Service Worker and PWA ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
@@ -280,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Tab-switching logic ---
+    // --- UI Helpers ---
     function initTabs() {
         const tabContainer = document.querySelector('.tab-container');
         tabContainer.addEventListener('click', (e) => {
@@ -292,7 +282,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Date Formatting Helper ---
+    function initSwipeNavigation() {
+        const contentArea = document.getElementById('dashboard-content');
+        let touchstartX = 0, touchendX = 0;
+        contentArea.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, { passive: true });
+        contentArea.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            if (Math.abs(touchendX - touchstartX) < 100) return;
+            const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
+            const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
+            let nextIndex = (touchendX > touchstartX) ? currentIndex - 1 : currentIndex + 1;
+            if (nextIndex < 0) nextIndex = tabButtons.length - 1;
+            else if (nextIndex >= tabButtons.length) nextIndex = 0;
+            tabButtons[nextIndex]?.click();
+        });
+    }
+
     function formatDateForDisplay(dateInput) {
         if (!dateInput) return '';
         try {
@@ -302,13 +307,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { return ''; }
     }
 
-    // --- Rendering Functions (Unchanged) ---
+    // --- Rendering Functions ---
+    // (These functions remain unchanged, so they are collapsed for brevity)
     function renderLightweightChart(containerId, data, title) {
         const container = document.getElementById(containerId);
-        if (!container || !data || data.length === 0) {
-            container.innerHTML = `<p>Chart data for ${title} is not available.</p>`;
-            return;
-        }
+        if (!container || !data || data.length === 0) { container.innerHTML = `<p>Chart data for ${title} is not available.</p>`; return; }
         container.innerHTML = '';
         const chart = LightweightCharts.createChart(container, { width: container.clientWidth, height: 300, layout: { backgroundColor: '#ffffff', textColor: '#333333' }, grid: { vertLines: { color: '#e1e1e1' }, horzLines: { color: '#e1e1e1' } }, crosshair: { mode: LightweightCharts.CrosshairMode.Normal }, timeScale: { borderColor: '#cccccc', timeVisible: true, secondsVisible: false }, handleScroll: false, handleScale: false });
         const candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, { upColor: '#26a69a', downColor: '#ef5350', borderDownColor: '#ef5350', borderUpColor: '#26a69a', wickDownColor: '#ef5350', wickUpColor: '#26a69a' });
@@ -456,83 +459,208 @@ document.addEventListener('DOMContentLoaded', () => {
         renderColumn(document.getElementById('column-content'), data.column);
     }
 
-    // --- Swipe Navigation ---
-    function initSwipeNavigation() {
-        const contentArea = document.getElementById('dashboard-content');
-        let touchstartX = 0, touchendX = 0;
-        contentArea.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, { passive: true });
-        contentArea.addEventListener('touchend', e => {
-            touchendX = e.changedTouches[0].screenX;
-            if (Math.abs(touchendX - touchstartX) < 100) return;
-            const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
-            const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
-            let nextIndex = (touchendX > touchstartX) ? currentIndex - 1 : currentIndex + 1;
-            if (nextIndex < 0) nextIndex = tabButtons.length - 1;
-            else if (nextIndex >= tabButtons.length) nextIndex = 0;
-            tabButtons[nextIndex]?.click();
-        });
-    }
-
     // --- App Initialization ---
     initializeApp();
 });
 
+// --- NEW: Fully Revised NotificationManager ---
 class NotificationManager {
-    constructor() { this.isSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window; this.vapidPublicKey = null; }
+    constructor() {
+        this.isSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+        this.vapidPublicKey = null;
+        this.isInitialized = false;
+        this.subscription = null;
+    }
+
     async init() {
-        if (!this.isSupported) return;
+        if (!this.isSupported) {
+            console.log('Push notifications are not supported');
+            this.updateUI('非対応', false);
+            return;
+        }
+
+        if (!AuthManager.isAuthenticated()) {
+            console.log('Not authenticated, skipping push notification setup');
+            return;
+        }
+
+        console.log('Initializing NotificationManager...');
+
         try {
-            const fetcher = typeof fetchWithAuth === 'function' ? fetchWithAuth : fetch;
-            const response = await fetcher('/api/vapid-public-key');
-            this.vapidPublicKey = (await response.json()).public_key;
-        } catch (error) { console.error('Failed to get VAPID public key:', error); return; }
-        await this.requestPermission();
-        await this.subscribeUser();
+            const response = await fetch('/api/vapid-public-key');
+            const data = await response.json();
+            this.vapidPublicKey = data.public_key;
+            console.log('VAPID public key obtained');
+        } catch (error) {
+            console.error('Failed to get VAPID public key:', error);
+            this.updateUI('エラー', false);
+            return;
+        }
+
+        await this.checkNotificationStatus();
+
+        if (!this.isInitialized) {
+            this.setupServiceWorkerListener();
+            this.isInitialized = true;
+        }
+    }
+
+    async checkNotificationStatus() {
+        const permission = Notification.permission;
+        console.log('Current notification permission:', permission);
+
+        if (permission === 'granted') {
+            await this.setupPushSubscription();
+            this.updateUI('有効', true);
+        } else if (permission === 'denied') {
+            this.updateUI('拒否（設定から変更してください）', false);
+        } else {
+            this.showSetupButton();
+            this.updateUI('未設定', false);
+        }
+    }
+
+    showSetupButton() {
+        const btn = document.getElementById('notification-setup-btn');
+        if (btn) {
+            btn.style.display = 'inline-block';
+            btn.onclick = () => this.requestPermissionManually();
+        }
+    }
+
+    async requestPermissionManually() {
+        console.log('Manual permission request initiated');
+        try {
+            const permission = await Notification.requestPermission();
+            console.log('Permission result:', permission);
+
+            if (permission === 'granted') {
+                await this.setupPushSubscription();
+                this.updateUI('有効', true);
+                const btn = document.getElementById('notification-setup-btn');
+                if (btn) btn.style.display = 'none';
+                new Notification('HanaView', {
+                    body: '通知が有効になりました',
+                    icon: '/icons/icon-192x192.png'
+                });
+            } else {
+                this.updateUI('拒否されました', false);
+            }
+        } catch (error) {
+            console.error('Permission request failed:', error);
+            this.updateUI('エラーが発生しました', false);
+        }
+    }
+
+    async setupPushSubscription() {
+        try {
+            console.log('Setting up push subscription...');
+            const registration = await navigator.serviceWorker.ready;
+            console.log('Service Worker ready');
+
+            let subscription = await registration.pushManager.getSubscription();
+            console.log('Existing subscription:', subscription);
+
+            if (subscription) {
+                console.log('Unsubscribing old subscription...');
+                await subscription.unsubscribe();
+            }
+
+            console.log('Creating new subscription...');
+            const convertedVapidKey = this.urlBase64ToUint8Array(this.vapidPublicKey);
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: convertedVapidKey
+            });
+            console.log('New subscription created:', subscription);
+            this.subscription = subscription;
+
+            await this.sendTokenToServiceWorker();
+            await this.sendSubscriptionToServer(subscription);
+
+            if ('sync' in registration) {
+                await registration.sync.register('data-sync');
+                console.log('Background sync registered');
+            }
+
+        } catch (error) {
+            console.error('Failed to setup push subscription:', error);
+            this.updateUI('登録エラー', false);
+        }
+    }
+
+    async sendTokenToServiceWorker() {
+        const token = AuthManager.getToken();
+        if (token && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({
+                type: 'SET_TOKEN',
+                token: token
+            });
+            console.log('Token sent to Service Worker');
+        }
+    }
+
+    async sendSubscriptionToServer(subscription) {
+        try {
+            console.log('Sending subscription to server...');
+            const response = await fetchWithAuth('/api/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(subscription)
+            });
+            if (!response.ok) throw new Error(`Server returned ${response.status}`);
+            const result = await response.json();
+            console.log('Subscription registered:', result);
+            this.updateUI('登録完了（毎朝6:30に通知）', true);
+        } catch (error) {
+            console.error('Failed to send subscription:', error);
+            throw error;
+        }
+    }
+
+    setupServiceWorkerListener() {
         navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data.type === 'data-updated' && event.data.data) {
-                console.log('Data updated via background sync at', event.data.timestamp || 'now');
-                if (typeof renderAllData === 'function') renderAllData(event.data.data);
-                this.showInAppNotification(`${event.data.timestamp === '6:30' ? '朝6:30の' : ''}データが更新されました`);
+            if (event.data.type === 'data-updated') {
+                console.log('Data updated notification received');
+                if (typeof renderAllData === 'function' && event.data.data) {
+                    renderAllData(event.data.data);
+                }
+                this.showInAppNotification('データが更新されました');
             }
         });
     }
-    async requestPermission() { return await Notification.requestPermission(); }
-    async subscribeUser() {
-        try {
-            const reg = await navigator.serviceWorker.ready;
-            let sub = await reg.pushManager.getSubscription();
-            if (!sub) {
-                sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey) });
-                await this.sendSubscriptionToServer(sub);
-            }
-            if ('sync' in reg) { await reg.sync.register('data-sync'); }
-            if ('periodicSync' in reg && (await navigator.permissions.query({ name: 'periodic-background-sync' })).state === 'granted') {
-                await reg.periodicSync.register('data-update', { minInterval: 3600000 });
-            }
-        } catch (error) { console.error('Failed to subscribe user:', error); }
+
+    updateUI(status, isActive) {
+        const statusEl = document.getElementById('notification-status');
+        if (statusEl) {
+            statusEl.textContent = `通知: ${status}`;
+            statusEl.style.color = isActive ? '#4caf50' : '#757575';
+        }
     }
-    async sendSubscriptionToServer(subscription) {
-        try {
-            const fetcher = typeof fetchWithAuth === 'function' ? fetchWithAuth : fetch;
-            const response = await fetcher('/api/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(subscription) });
-            if (!response.ok) throw new Error('Failed to send subscription');
-        } catch (error) { console.error('Error sending subscription:', error); }
-    }
+
     urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
         const rawData = window.atob(base64);
         const outputArray = new Uint8Array(rawData.length);
         for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
         return outputArray;
     }
+
     showInAppNotification(message) {
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
         toast.textContent = message;
-        toast.style.cssText = `position: fixed; bottom: 20px; right: 20px; background: #006B6B; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000; animation: slideIn 0.3s ease-out;`;
+        toast.style.cssText = `
+            position: fixed; bottom: 20px; right: 20px;
+            background: #006B6B; color: white; padding: 15px 20px;
+            border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000; animation: slideIn 0.3s ease-out;`;
         document.body.appendChild(toast);
-        setTimeout(() => { toast.style.animation = 'slideOut 0.3s ease-out'; setTimeout(() => document.body.removeChild(toast), 300); }, 3000);
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => { document.body.removeChild(toast); }, 300);
+        }, 3000);
     }
 }
 
