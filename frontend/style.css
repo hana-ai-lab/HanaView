@@ -730,3 +730,43 @@ body {
         font-size: 1.5em;
     }
 }
+
+.notification-btn {
+    background-color: var(--tab-active-bg);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 10px 0;
+    font-size: 14px;
+}
+
+.notification-btn:hover {
+    opacity: 0.9;
+}
+
+.notification-status {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-left: 10px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    } to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    } to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
