@@ -39,7 +39,7 @@ RUN ( \
     echo "TZ=Asia/Tokyo" ; \
     echo "" ; \
     echo "15 6 * * 1-5 . /app/backend/cron-env.sh && /app/backend/run_job.sh fetch >> /app/logs/cron_error.log 2>&1" ; \
-    echo "29 6 * * 1-5 . /app/backend/cron-env.sh && /app/backend/run_job.sh generate >> /app/logs/cron_error.log 2>&1" \
+    echo "28 6 * * 1-5 . /app/backend/cron-env.sh && /app/backend/run_job.sh generate >> /app/logs/cron_error.log 2>&1" \
 ) | crontab -
 
 # Create logs directory
