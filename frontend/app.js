@@ -111,19 +111,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Main App Logic (Updated) ---
 
-    let notificationManagerInstance = null;
-
     async function initializeApp() {
         try {
             if (AuthManager.isAuthenticated()) {
-                const response = await fetchWithAuth('/api/auth/check');
-                const data = await response.json();
-                if (data.authenticated) {
-                    showDashboard();
-                } else {
-                    await AuthManager.clearAuthData();
-                    showAuthScreen();
-                }
+                // Directly show the dashboard. The first data fetch will act as an auth check.
+                showDashboard();
             } else {
                 showAuthScreen();
             }
@@ -141,6 +133,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (authContainer) authContainer.style.display = 'none';
         if (dashboardContainer) dashboardContainer.style.display = 'block';
 
+        // Initialize NotificationManager every time. It's lightweight and ensures consistency.
+        const notificationManager = new NotificationManager();
+        notificationManager.init();
+
         if (!dashboardContainer.dataset.initialized) {
             console.log("HanaView Dashboard Initialized");
             initTabs();
@@ -148,18 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
             initSwipeNavigation();
             dashboardContainer.dataset.initialized = 'true';
         }
-
-        // 通知マネージャーの初期化（遅延実行でiOS PWAの問題を回避）
-        setTimeout(() => {
-            if (!notificationManagerInstance) {
-                console.log("Creating NotificationManager instance");
-                notificationManagerInstance = new NotificationManager();
-                notificationManagerInstance.init();
-            } else {
-                // トークンをService Workerに再送信
-                notificationManagerInstance.sendTokenToServiceWorker();
-            }
-        }, 1000);  // 1秒待つ
     }
 
     function showAuthScreen() {
@@ -245,9 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await AuthManager.clearAuthData();
         showAuthScreen();
         console.log('Logged out successfully');
-        try {
-            await fetchWithAuth('/api/auth/logout', { method: 'POST' });
-        } catch (e) { /* Ignore */ }
+        // The /api/auth/logout endpoint has been removed.
+        // Logout is now a client-side only operation.
     }
 
     function setLoading(isLoading) {
@@ -482,20 +465,11 @@ class NotificationManager {
     constructor() {
         this.isSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
         this.vapidPublicKey = null;
-        this.isInitialized = false;
-        this.subscription = null;
     }
 
     async init() {
         if (!this.isSupported) {
             console.log('Push notifications are not supported');
-            this.updateUI('非対応', false);
-            return;
-        }
-
-        // 認証されていない場合はスキップ
-        if (!AuthManager.isAuthenticated()) {
-            console.log('Not authenticated, skipping push notification setup');
             return;
         }
 
@@ -509,159 +483,71 @@ class NotificationManager {
             console.log('VAPID public key obtained');
         } catch (error) {
             console.error('Failed to get VAPID public key:', error);
-            this.updateUI('エラー', false);
             return;
         }
 
-        // 現在の通知権限を確認
-        await this.checkNotificationStatus();
-
-        // Service Workerメッセージリスナー（一度だけ登録）
-        if (!this.isInitialized) {
-            this.setupServiceWorkerListener();
-            this.isInitialized = true;
+        // 通知権限を確認・要求
+        const permission = await this.requestPermission();
+        if (permission) {
+            await this.subscribeUser();
         }
-    }
 
-    async checkNotificationStatus() {
-        const permission = Notification.permission;
-        console.log('Current notification permission:', permission);
-
-        if (permission === 'granted') {
-            // すでに許可されている場合は自動で登録
-            await this.setupPushSubscription();
-            this.updateUI('有効', true);
-        } else if (permission === 'denied') {
-            this.updateUI('拒否（設定から変更してください）', false);
-        } else {
-            // デフォルトの場合は手動設定ボタンを表示
-            this.showSetupButton();
-            this.updateUI('未設定', false);
-        }
-    }
-
-    showSetupButton() {
-        const btn = document.getElementById('notification-setup-btn');
-        if (btn) {
-            btn.style.display = 'inline-block';
-            btn.onclick = () => this.requestPermissionManually();
-        }
-    }
-
-    async requestPermissionManually() {
-        console.log('Manual permission request initiated');
-
-        // iOS PWAの場合、ユーザーインタラクションから呼ばれるので成功しやすい
-        try {
-            const permission = await Notification.requestPermission();
-            console.log('Permission result:', permission);
-
-            if (permission === 'granted') {
-                await this.setupPushSubscription();
-                this.updateUI('有効', true);
-
-                // ボタンを隠す
-                const btn = document.getElementById('notification-setup-btn');
-                if (btn) btn.style.display = 'none';
-
-                // テスト通知
-                new Notification('HanaView', {
-                    body: '通知が有効になりました',
-                    icon: '/icons/icon-192x192.png'
-                });
-            } else {
-                this.updateUI('拒否されました', false);
+        // Service Workerメッセージリスナー
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data.type === 'data-updated' && event.data.data) {
+                console.log('Data updated via push notification');
+                if (typeof renderAllData === 'function') {
+                    renderAllData(event.data.data);
+                }
+                this.showInAppNotification('データが更新されました');
             }
-        } catch (error) {
-            console.error('Permission request failed:', error);
-            this.updateUI('エラーが発生しました', false);
-        }
+        });
     }
 
-    async setupPushSubscription() {
-        try {
-            console.log('Setting up push subscription...');
+    async requestPermission() {
+        const permission = await Notification.requestPermission();
+        console.log('Notification permission:', permission);
+        return permission === 'granted';
+    }
 
-            // Service Workerの準備を待つ
+    async subscribeUser() {
+        try {
             const registration = await navigator.serviceWorker.ready;
-            console.log('Service Worker ready');
 
-            // 既存のサブスクリプションを確認
+            // 既存のサブスクリプションをチェック
             let subscription = await registration.pushManager.getSubscription();
-            console.log('Existing subscription:', subscription);
 
-            if (subscription) {
-                // 既存のものがあれば一度解除して新規作成
-                console.log('Unsubscribing old subscription...');
-                await subscription.unsubscribe();
+            if (!subscription) {
+                // 新規作成
+                const convertedVapidKey = this.urlBase64ToUint8Array(this.vapidPublicKey);
+                subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: convertedVapidKey
+                });
             }
 
-            // 新規サブスクリプション作成
-            console.log('Creating new subscription...');
-            const convertedVapidKey = this.urlBase64ToUint8Array(this.vapidPublicKey);
-
-            subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: convertedVapidKey
-            });
-
-            console.log('New subscription created:', subscription);
-            this.subscription = subscription;
-
-            // Service Workerにトークンを送信（重要！）
-            await this.sendTokenToServiceWorker();
-
-            // サーバーに送信
+            // サーバーに送信（クッキーが自動的に送信される！）
             await this.sendSubscriptionToServer(subscription);
 
-            // Background syncの登録
+            // Background sync登録
             if ('sync' in registration) {
                 await registration.sync.register('data-sync');
-                console.log('Background sync registered');
-            }
-
-            // Periodic Background syncの登録
-            if ('periodicSync' in registration) {
-                const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
-                if (status.state === 'granted') {
-                    try {
-                        await registration.periodicSync.register('data-update', {
-                            minInterval: 3600 * 1000, // 1時間ごと
-                        });
-                        console.log('Periodic background sync registered.');
-                    } catch (error) {
-                        console.error('Failed to register periodic sync:', error);
-                    }
-                }
             }
 
         } catch (error) {
-            console.error('Failed to setup push subscription:', error);
-            this.updateUI('登録エラー', false);
-        }
-    }
-
-    async sendTokenToServiceWorker() {
-        // Service WorkerにJWTトークンを送信
-        const token = AuthManager.getToken();
-        if (token && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.controller.postMessage({
-                type: 'SET_TOKEN',
-                token: token
-            });
-            console.log('Token sent to Service Worker');
+            console.error('Failed to subscribe user:', error);
         }
     }
 
     async sendSubscriptionToServer(subscription) {
         try {
-            console.log('Sending subscription to server...');
-
-            const response = await fetchWithAuth('/api/subscribe', {
+            // クッキーベースなので、通常のfetchで問題ない
+            const response = await fetch('/api/subscribe', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',  // クッキーを送信
                 body: JSON.stringify(subscription)
             });
 
@@ -670,34 +556,10 @@ class NotificationManager {
             }
 
             const result = await response.json();
-            console.log('Subscription registered:', result);
-
-            // 成功をユーザーに通知
-            this.updateUI('登録完了（毎朝6:30に通知）', true);
+            console.log('Push subscription registered:', result);
 
         } catch (error) {
-            console.error('Failed to send subscription:', error);
-            throw error;
-        }
-    }
-
-    setupServiceWorkerListener() {
-        navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data.type === 'data-updated') {
-                console.log('Data updated notification received');
-                if (typeof renderAllData === 'function' && event.data.data) {
-                    renderAllData(event.data.data);
-                }
-                this.showInAppNotification('データが更新されました');
-            }
-        });
-    }
-
-    updateUI(status, isActive) {
-        const statusEl = document.getElementById('notification-status');
-        if (statusEl) {
-            statusEl.textContent = `通知: ${status}`;
-            statusEl.style.color = isActive ? '#4caf50' : '#757575';
+            console.error('Error sending subscription to server:', error);
         }
     }
 
