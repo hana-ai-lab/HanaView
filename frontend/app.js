@@ -111,6 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Main App Logic (Updated) ---
 
+    let notificationManagerInstance = null;  // グローバル変数として管理
+
     async function initializeApp() {
         try {
             if (AuthManager.isAuthenticated()) {
@@ -139,22 +141,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (authContainer) authContainer.style.display = 'none';
         if (dashboardContainer) dashboardContainer.style.display = 'block';
 
-        const isInitialized = dashboardContainer.dataset.initialized === 'true';
-
-        // Always fetch data to ensure it's fresh, especially if a previous attempt was interrupted.
-        fetchDataAndRender();
-
-        if (!isInitialized) {
-            // First-time initialization
+        // Initialize dashboard features only once
+        if (!dashboardContainer.dataset.initialized) {
             console.log("HanaView Dashboard Initialized");
             initTabs();
+            // fetchDataAndRender is called below, so not needed here
             initSwipeNavigation();
             dashboardContainer.dataset.initialized = 'true';
         }
 
-        // Initialize notifications after authentication is confirmed.
-        const notificationManager = new NotificationManager();
-        notificationManager.init();
+        // Always fetch data to ensure it's fresh
+        fetchDataAndRender();
+
+        // Initialize or re-check notification manager
+        if (!notificationManagerInstance) {
+            console.log("Initializing NotificationManager for the first time.");
+            notificationManagerInstance = new NotificationManager();
+            notificationManagerInstance.init().then(() => {
+                console.log("NotificationManager initialization complete.");
+            }).catch(error => {
+                console.error("NotificationManager initialization failed:", error);
+            });
+        } else {
+            console.log("NotificationManager instance already exists. Re-checking subscription.");
+            // Re-check subscription state without re-initializing everything
+            notificationManagerInstance.subscribeUser().then(() => {
+                console.log("Push subscription re-check complete.");
+            }).catch(error => {
+                console.error("Push subscription re-check failed:", error);
+            });
+        }
     }
 
     function showAuthScreen() {
@@ -477,83 +493,140 @@ class NotificationManager {
     constructor() {
         this.isSupported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
         this.vapidPublicKey = null;
+        this.isInitialized = false;  // 初期化フラグを追加
     }
 
     async init() {
+        if (this.isInitialized) {
+            console.log('NotificationManager already initialized, re-checking subscription.');
+            await this.subscribeUser(); // Re-check subscription on re-init
+            return;
+        }
+
         if (!this.isSupported) {
             console.log('Push notifications are not supported');
             return;
         }
 
-        // Skip if not authenticated
         if (!AuthManager.isAuthenticated()) {
             console.log('Not authenticated, skipping push notification setup');
             return;
         }
 
-        // Get VAPID public key from server
+        console.log('Starting NotificationManager initialization...');
+
         try {
             const response = await fetchWithAuth('/api/vapid-public-key');
             const data = await response.json();
             this.vapidPublicKey = data.public_key;
+            console.log('VAPID public key obtained');
         } catch (error) {
             console.error('Failed to get VAPID public key:', error);
+            return; // Stop initialization if key fails
+        }
+
+        const permissionGranted = await this.requestPermission();
+        if (!permissionGranted) {
+            console.log('Notification permission not granted. Halting setup.');
             return;
         }
 
-        await this.requestPermission();
         await this.subscribeUser();
 
-        navigator.serviceWorker.addEventListener('message', event => {
-            if (event.data.type === 'data-updated' && event.data.data) {
-                console.log('Data updated via background sync at', event.data.timestamp || 'now');
-                if (typeof renderAllData === 'function') renderAllData(event.data.data);
-                this.showInAppNotification(`${event.data.timestamp === '6:30' ? '朝6:30の' : ''}データが更新されました`);
-            }
-        });
+        if (!this.isInitialized) { // Prevent duplicate listeners
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data.type === 'data-updated' && event.data.data) {
+                    console.log('Data updated via background sync at', event.data.timestamp || 'now');
+                    if (typeof renderAllData === 'function') {
+                        renderAllData(event.data.data);
+                    }
+                    this.showInAppNotification(`${event.data.timestamp === '6:30' ? '朝6:30の' : ''}データが更新されました`);
+                }
+            });
+        }
+
+        this.isInitialized = true;
+        console.log('NotificationManager full initialization complete');
     }
 
     async requestPermission() {
-        return await Notification.requestPermission();
+        try {
+            const permission = await Notification.requestPermission();
+            console.log('Notification permission status:', permission);
+            return permission === 'granted';
+        } catch (error) {
+            console.error('Error requesting notification permission:', error);
+            return false;
+        }
     }
 
     async subscribeUser() {
+        if (!this.vapidPublicKey) {
+            console.error("Cannot subscribe without VAPID public key.");
+            return;
+        }
         try {
-            const reg = await navigator.serviceWorker.ready;
-            let sub = await reg.pushManager.getSubscription();
-            if (!sub) {
-                sub = await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
-                });
-                await this.sendSubscriptionToServer(sub);
+            console.log('Starting push subscription process...');
+            const registration = await navigator.serviceWorker.ready;
+            console.log('Service Worker is ready for push subscription.');
+
+            let subscription = await registration.pushManager.getSubscription();
+
+            // For robustness, always re-subscribe to ensure the subscription is fresh and valid.
+            if (subscription) {
+                console.log('Found existing subscription. Unsubscribing to ensure a clean state.');
+                await subscription.unsubscribe();
             }
-            // Background sync registrations can stay as they are beneficial if supported
-            if ('sync' in reg) { await reg.sync.register('data-sync'); }
-            if ('periodicSync' in reg && (await navigator.permissions.query({ name: 'periodic-background-sync' })).state === 'granted') {
-                await reg.periodicSync.register('data-update', { minInterval: 3600000 });
+
+            console.log('Creating new push subscription...');
+            const newSubscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey)
+            });
+            console.log('New push subscription created:', newSubscription);
+
+            await this.sendSubscriptionToServer(newSubscription);
+
+            // Set up background sync features
+            if ('sync' in registration) {
+                await registration.sync.register('data-sync');
+                console.log('Background sync registered.');
+            }
+            if ('periodicSync' in registration) {
+                const status = await navigator.permissions.query({ name: 'periodic-background-sync' });
+                if (status.state === 'granted') {
+                    await registration.periodicSync.register('data-update', { minInterval: 3600 * 1000 });
+                    console.log('Periodic background sync registered.');
+                }
             }
         } catch (error) {
-            console.error('Failed to subscribe user:', error);
+            console.error('Failed to subscribe user for push notifications:', error);
+            // Don't re-throw, just log it. Failure to subscribe shouldn't break the app.
         }
     }
 
     async sendSubscriptionToServer(subscription) {
         try {
-            // Use fetchWithAuth to include the auth header
+            console.log('Sending subscription to server...');
             const response = await fetchWithAuth('/api/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(subscription)
             });
+
             if (!response.ok) {
-                throw new Error('Failed to send subscription to server');
+                const errorText = await response.text();
+                throw new Error(`Server responded with ${response.status}: ${errorText}`);
             }
-            console.log('Push subscription successfully registered');
+
+            const result = await response.json();
+            console.log('Push subscription successfully registered with server:', result);
         } catch (error) {
-            console.error('Error sending subscription to server:', error);
+            console.error('Error sending push subscription to server:', error);
+            // Don't re-throw, just log it.
         }
     }
+
     urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
         const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
