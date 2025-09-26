@@ -457,8 +457,38 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- Auto Reload Function ---
+    function setupAutoReload() {
+        const LAST_RELOAD_KEY = 'lastAutoReloadDate';
+
+        setInterval(() => {
+            const now = new Date();
+            const day = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+
+            // 平日（月〜金）かどうかをチェック
+            const isWeekday = day >= 1 && day <= 5;
+
+            // 午前6時30分であるかをチェック
+            const isReloadTime = hours === 6 && minutes === 30;
+
+            if (isWeekday && isReloadTime) {
+                const today = now.toISOString().split('T')[0]; // YYYY-MM-DD形式の日付を取得
+                const lastReloadDate = localStorage.getItem(LAST_RELOAD_KEY);
+
+                if (lastReloadDate !== today) {
+                    console.log('Auto-reloading page at 6:30 on a weekday...');
+                    localStorage.setItem(LAST_RELOAD_KEY, today);
+                    location.reload();
+                }
+            }
+        }, 60000); // 1分ごとにチェック
+    }
+
     // --- App Initialization ---
     initializeApp();
+    setupAutoReload(); // 自動リロード設定を有効化
 });
 
 class NotificationManager {
