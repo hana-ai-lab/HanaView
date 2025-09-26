@@ -3,7 +3,7 @@ import os
 import json
 import re
 from datetime import datetime, timedelta, timezone
-from fastapi import Depends, FastAPI, HTTPException, Header, status
+from fastapi import Depends, FastAPI, HTTPException, Header, status, Response, Request, Cookie
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from jose import JWTError, jwt
@@ -45,6 +45,9 @@ async def startup_event():
 AUTH_PIN = os.getenv("AUTH_PIN", "123456")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_DAYS", 30))
+NOTIFICATION_TOKEN_NAME = "notification_token"
+NOTIFICATION_TOKEN_EXPIRE_HOURS = 24  # 24時間（短期で問題ない）
+
 
 # In-memory storage for subscriptions
 push_subscriptions: Dict[str, Any] = {}
@@ -79,91 +82,103 @@ def get_latest_data_file():
     latest_file = sorted(data_files, reverse=True)[0]
     return os.path.join(DATA_DIR, latest_file)
 
-# --- Authentication Dependency ---
+# --- Authentication Dependencies ---
 async def get_current_user(authorization: Optional[str] = Header(None)):
-    """Authorizationヘッダーからトークンを取得して検証"""
-
-    if not authorization:
+    """メインAPI用の認証（Authorizationヘッダー）"""
+    if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authorization header missing",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Authorization header missing or invalid"
         )
 
-    # Bearer トークンの形式チェック
-    if not authorization.startswith("Bearer "):
+    token = authorization[7:]
+    try:
+        payload = jwt.decode(token, security_manager.jwt_secret, algorithms=[ALGORITHM])
+        if payload.get("type") != "main":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        username = payload.get("sub")
+        if not username:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return username
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token validation failed")
+
+async def get_current_user_for_notification(
+    notification_token: Optional[str] = Cookie(None, alias=NOTIFICATION_TOKEN_NAME),
+    authorization: Optional[str] = Header(None)
+):
+    """通知API用の認証（クッキーまたはヘッダー）"""
+
+    token = None
+
+    # まずクッキーをチェック
+    if notification_token:
+        token = notification_token
+    # 次にAuthorizationヘッダーをチェック
+    elif authorization and authorization.startswith("Bearer "):
+        token = authorization[7:]
+
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authorization header format",
-            headers={"WWW-Authenticate": "Bearer"},
+            detail="Authentication required"
         )
-
-    token = authorization[7:]  # "Bearer " を除去
 
     try:
         payload = jwt.decode(token, security_manager.jwt_secret, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload"
-            )
+        username = payload.get("sub")
+        if not username:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return username
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
-        )
-
-    return username
+        raise HTTPException(status_code=401, detail="Token validation failed")
 
 # --- API Endpoints ---
 
 @app.post("/api/auth/verify")
-def verify_pin(pin_data: PinVerification):
-    """PINを検証し、JWTトークンを返す（クッキーは設定しない）"""
-
+def verify_pin(pin_data: PinVerification, response: Response, request: Request):
+    """
+    PINを検証し、LocalStorage用トークンとクッキーの両方を設定
+    """
     if pin_data.pin == AUTH_PIN:
-        expires = timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
-        access_token = create_access_token(
-            data={"sub": "user"},
-            expires_delta=expires
+        # メイン認証用（30日間）
+        expires_long = timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+        main_token = create_access_token(
+            data={"sub": "user", "type": "main"},
+            expires_delta=expires_long
         )
 
-        # トークンをJSONレスポンスで返す（クッキー設定なし）
+        # 通知用（24時間、自動更新される）
+        expires_short = timedelta(hours=NOTIFICATION_TOKEN_EXPIRE_HOURS)
+        notification_token = create_access_token(
+            data={"sub": "user", "type": "notification"},
+            expires_delta=expires_short
+        )
+
+        # 通知用クッキーを設定（httpOnly=Falseで設定）
+        is_https = request.headers.get("X-Forwarded-Proto") == "https"
+        response.set_cookie(
+            key=NOTIFICATION_TOKEN_NAME,
+            value=notification_token,
+            httponly=False,  # Service Workerからアクセス可能
+            max_age=int(expires_short.total_seconds()),
+            samesite="none" if is_https else "lax",
+            path="/",
+            secure=is_https
+        )
+
+        # LocalStorage用のメイントークンを返す
         return {
             "success": True,
-            "token": access_token,
-            "expires_in": int(expires.total_seconds()),
-            "expires_at": (datetime.now(timezone.utc) + expires).isoformat()
+            "token": main_token,
+            "expires_in": int(expires_long.total_seconds()),
+            "notification_cookie_set": True
         }
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect authentication code"
         )
-
-@app.get("/api/auth/check")
-def check_authentication(authorization: Optional[str] = Header(None)):
-    """認証状態を確認（Authorizationヘッダーを使用）"""
-
-    if not authorization or not authorization.startswith("Bearer "):
-        return {"authenticated": False}
-
-    token = authorization[7:]
-
-    try:
-        payload = jwt.decode(token, security_manager.jwt_secret, algorithms=[ALGORITHM])
-        if payload and payload.get("sub"):
-            return {"authenticated": True}
-    except JWTError:
-        pass
-
-    return {"authenticated": False}
-
-@app.post("/api/auth/logout")
-def logout():
-    """ログアウト（クライアント側でトークンを削除）"""
-    return {"success": True, "message": "Please clear local token"}
 
 @app.get("/api/health")
 def health_check():
@@ -185,38 +200,39 @@ def get_market_data(current_user: str = Depends(get_current_user)):
 
 @app.get("/api/vapid-public-key")
 def get_vapid_public_key():
-    """Returns the VAPID public key for push notifications."""
+    """認証不要でVAPID公開鍵を返す"""
     return {"public_key": security_manager.vapid_public_key}
 
 @app.post("/api/subscribe")
-async def subscribe_push(subscription: PushSubscription, current_user: str = Depends(get_current_user)):
-    """Subscribe to push notifications for 6:30 AM updates."""
-    # Store subscription (in production, use a database)
+async def subscribe_push(
+    subscription: PushSubscription,
+    current_user: str = Depends(get_current_user_for_notification)  # ← 変更
+):
+    """Push通知のサブスクリプション登録（クッキーベース認証）"""
     subscription_id = str(hash(subscription.endpoint))
     push_subscriptions[subscription_id] = subscription.dict()
 
-    # Save to file for persistence
     subscriptions_file = os.path.join(DATA_DIR, 'push_subscriptions.json')
     try:
-        # Load existing subscriptions
         existing = {}
         if os.path.exists(subscriptions_file):
             with open(subscriptions_file, 'r') as f:
                 existing = json.load(f)
 
-        # Add new subscription
         existing[subscription_id] = subscription.dict()
 
-        # Save back
         with open(subscriptions_file, 'w') as f:
             json.dump(existing, f)
     except Exception as e:
         print(f"Error saving subscription: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save subscription")
 
     return {"status": "subscribed", "id": subscription_id}
 
 @app.post("/api/send-notification")
-async def send_notification(current_user: str = Depends(get_current_user)):
+async def send_notification(
+    current_user: str = Depends(get_current_user_for_notification)
+):
     """Manually send push notification to all subscribers (for testing)."""
     # Load subscriptions from file
     subscriptions_file = os.path.join(DATA_DIR, 'push_subscriptions.json')
