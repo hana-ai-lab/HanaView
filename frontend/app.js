@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
         contentArea.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, { passive: true });
         contentArea.addEventListener('touchend', e => {
             touchendX = e.changedTouches[0].screenX;
-            if (Math.abs(touchendX - touchstartX) < 150) return;
+            if (Math.abs(touchendX - touchstartX) < 100) return;
             const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
             const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
             let nextIndex = (touchendX > touchstartX) ? currentIndex - 1 : currentIndex + 1;
