@@ -454,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const deltaX = Math.abs(touchendX - touchstartX);
             const deltaY = Math.abs(touchendY - touchstartY);
 
-            if (deltaX > 100 && deltaX > deltaY * 1.5) {
+            if (deltaX > 100 && deltaX > deltaY * 2.5) {
                 const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
                 const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
                 let nextIndex = (touchendX > touchstartX) ? currentIndex - 1 : currentIndex + 1;
