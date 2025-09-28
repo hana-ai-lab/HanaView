@@ -451,13 +451,20 @@ document.addEventListener('DOMContentLoaded', () => {
         contentArea.addEventListener('touchend', e => {
             touchendX = e.changedTouches[0].screenX;
             touchendY = e.changedTouches[0].screenY;
-            const deltaX = Math.abs(touchendX - touchstartX);
-            const deltaY = Math.abs(touchendY - touchstartY);
 
-            if (deltaX > 100 && deltaX > deltaY * 2.5) {
+            const deltaX = touchendX - touchstartX;
+            const absDeltaX = Math.abs(deltaX);
+            const absDeltaY = Math.abs(touchendY - touchstartY);
+
+            // スワイプの角度を計算（水平方向とのなす角）
+            const angle = Math.atan2(absDeltaY, absDeltaX) * (180 / Math.PI);
+
+            // 水平方向への移動量が100px以上で、かつ角度が30度未満の場合にのみタブを切り替える
+            if (absDeltaX > 100 && angle < 30) {
                 const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
                 const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
-                let nextIndex = (touchendX > touchstartX) ? currentIndex - 1 : currentIndex + 1;
+                // 右スワイプ（deltaX > 0）でインデックスを減算、左スワイプで加算
+                let nextIndex = (deltaX > 0) ? currentIndex - 1 : currentIndex + 1;
                 if (nextIndex < 0) nextIndex = tabButtons.length - 1;
                 else if (nextIndex >= tabButtons.length) nextIndex = 0;
                 tabButtons[nextIndex]?.click();
