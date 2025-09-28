@@ -443,17 +443,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Swipe Navigation ---
     function initSwipeNavigation() {
         const contentArea = document.getElementById('dashboard-content');
-        let touchstartX = 0, touchendX = 0;
-        contentArea.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, { passive: true });
+        let touchstartX = 0, touchendX = 0, touchstartY = 0, touchendY = 0;
+        contentArea.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+            touchstartY = e.changedTouches[0].screenY;
+        }, { passive: true });
         contentArea.addEventListener('touchend', e => {
             touchendX = e.changedTouches[0].screenX;
-            if (Math.abs(touchendX - touchstartX) < 100) return;
-            const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
-            const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
-            let nextIndex = (touchendX > touchstartX) ? currentIndex - 1 : currentIndex + 1;
-            if (nextIndex < 0) nextIndex = tabButtons.length - 1;
-            else if (nextIndex >= tabButtons.length) nextIndex = 0;
-            tabButtons[nextIndex]?.click();
+            touchendY = e.changedTouches[0].screenY;
+            const deltaX = Math.abs(touchendX - touchstartX);
+            const deltaY = Math.abs(touchendY - touchstartY);
+
+            if (deltaX > 100 && deltaX > deltaY * 1.5) {
+                const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
+                const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
+                let nextIndex = (touchendX > touchstartX) ? currentIndex - 1 : currentIndex + 1;
+                if (nextIndex < 0) nextIndex = tabButtons.length - 1;
+                else if (nextIndex >= tabButtons.length) nextIndex = 0;
+                tabButtons[nextIndex]?.click();
+            }
         });
     }
 
