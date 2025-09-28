@@ -443,33 +443,74 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Swipe Navigation ---
     function initSwipeNavigation() {
         const contentArea = document.getElementById('dashboard-content');
-        let touchstartX = 0, touchendX = 0, touchstartY = 0, touchendY = 0;
+        let touchstartX = 0, touchstartY = 0;
+        let touchendX = 0, touchendY = 0;
+        let startTime = 0;
+
         contentArea.addEventListener('touchstart', e => {
-            touchstartX = e.changedTouches[0].screenX;
-            touchstartY = e.changedTouches[0].screenY;
-        }, { passive: true });
+            // clientX/clientYを使用（viewport相対座標）
+            touchstartX = e.touches[0].clientX;
+            touchstartY = e.touches[0].clientY;
+            startTime = Date.now();
+        }, { passive: false }); // passiveをfalseに変更
+
+        contentArea.addEventListener('touchmove', e => {
+            // 早期にスワイプかどうかを判定
+            const currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+
+            const deltaX = currentX - touchstartX;
+            const deltaY = currentY - touchstartY;
+
+            // 移動量が一定以上の場合のみ判定
+            if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+                const angle = Math.atan2(Math.abs(deltaY), Math.abs(deltaX)) * (180 / Math.PI);
+
+                // 水平スワイプの可能性がある場合、垂直スクロールを防ぐ
+                if (angle < 30 && Math.abs(deltaX) > Math.abs(deltaY)) {
+                    e.preventDefault();
+                }
+            }
+        }, { passive: false });
+
         contentArea.addEventListener('touchend', e => {
-            touchendX = e.changedTouches[0].screenX;
-            touchendY = e.changedTouches[0].screenY;
+            touchendX = e.changedTouches[0].clientX;
+            touchendY = e.changedTouches[0].clientY;
 
             const deltaX = touchendX - touchstartX;
+            const deltaY = touchendY - touchstartY;
             const absDeltaX = Math.abs(deltaX);
-            const absDeltaY = Math.abs(touchendY - touchstartY);
+            const absDeltaY = Math.abs(deltaY);
 
-            // スワイプの角度を計算（水平方向とのなす角）
+            // スワイプ時間のチェック（500ms以内）
+            const swipeTime = Date.now() - startTime;
+
+            // 角度計算
             const angle = Math.atan2(absDeltaY, absDeltaX) * (180 / Math.PI);
 
-            // 水平方向への移動量が100px以上で、かつ角度が30度未満の場合にのみタブを切り替える
-            if (absDeltaX > 100 && angle < 30) {
+            // より厳密な判定条件
+            const isHorizontalSwipe = (
+                absDeltaX > 100 &&                    // X方向に100px以上移動
+                absDeltaX > absDeltaY * 2 &&          // X移動がY移動の2倍以上
+                angle < 30 &&                         // 角度が30度未満
+                swipeTime < 500                       // 500ms以内の素早いスワイプ
+            );
+
+            if (isHorizontalSwipe) {
                 const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
                 const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
-                // 右スワイプ（deltaX > 0）でインデックスを減算、左スワイプで加算
+
+                // 右スワイプ（deltaX > 0）で左のタブへ、左スワイプで右のタブへ
                 let nextIndex = (deltaX > 0) ? currentIndex - 1 : currentIndex + 1;
+
+                // 循環処理
                 if (nextIndex < 0) nextIndex = tabButtons.length - 1;
                 else if (nextIndex >= tabButtons.length) nextIndex = 0;
+
+                // タブ切り替え実行
                 tabButtons[nextIndex]?.click();
             }
-        });
+        }, { passive: false });
     }
 
     // --- Auto Reload Function ---
