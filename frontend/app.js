@@ -440,157 +440,66 @@ document.addEventListener('DOMContentLoaded', () => {
         renderColumn(document.getElementById('column-content'), data.column);
     }
 
-// --- Improved Swipe Navigation ---
-function initSwipeNavigation() {
-    const contentArea = document.getElementById('dashboard-content');
+    // --- Swipe Navigation ---
+    function initSwipeNavigation() {
+        const contentArea = document.getElementById('dashboard-content');
 
-    let touchstartX = 0;
-    let touchstartY = 0;
-    let touchmoveX = 0;
-    let touchmoveY = 0;
-    let isScrolling = null; // null: 未判定, true: 垂直スクロール, false: 水平スワイプ
-    let initialDirection = null; // 'vertical' or 'horizontal' or null
-    let swipeThresholdMet = false;
+        let touchstartX = 0;
+        let touchstartY = 0;
+        let hasScrolledVertically = false;
+        const verticalScrollThreshold = 10; // 垂直スクロールと判定する最小移動量
+        const horizontalSwipeThreshold = 100; // 水平スワイプと判定する最小移動量
 
-    // 判定のための閾値
-    const MIN_SWIPE_DISTANCE = 100; // 最小スワイプ距離
-    const INITIAL_MOVE_THRESHOLD = 10; // 初期移動判定の閾値
-    const HORIZONTAL_ANGLE_LIMIT = 20; // 水平と見なす最大角度（度）
+        contentArea.addEventListener('touchstart', e => {
+            touchstartX = e.touches[0].screenX;
+            touchstartY = e.touches[0].screenY;
+            hasScrolledVertically = false; // タッチ開始時にリセット
+        }, { passive: true });
 
-    contentArea.addEventListener('touchstart', e => {
-        touchstartX = e.touches[0].screenX;
-        touchstartY = e.touches[0].screenY;
-        touchmoveX = touchstartX;
-        touchmoveY = touchstartY;
-        isScrolling = null;
-        initialDirection = null;
-        swipeThresholdMet = false;
-    }, { passive: true });
+        contentArea.addEventListener('touchmove', e => {
+            // すでに垂直スクロールと判定されていたら、何もしない
+            if (hasScrolledVertically) {
+                return;
+            }
 
-    contentArea.addEventListener('touchmove', e => {
-        if (!touchstartX || !touchstartY) return;
+            const touchmoveY = e.touches[0].screenY;
+            const deltaY = Math.abs(touchmoveY - touchstartY);
 
-        touchmoveX = e.touches[0].screenX;
-        touchmoveY = e.touches[0].screenY;
+            // Y方向の移動が閾値を超えたら、垂直スクロールと判定
+            if (deltaY > verticalScrollThreshold) {
+                hasScrolledVertically = true;
+            }
+        }, { passive: true });
 
-        const deltaX = touchmoveX - touchstartX;
-        const deltaY = touchmoveY - touchstartY;
-        const absDeltaX = Math.abs(deltaX);
-        const absDeltaY = Math.abs(deltaY);
+        contentArea.addEventListener('touchend', e => {
+            // 垂直スクロールがあった場合は、横スワイプ処理を一切行わない
+            if (hasScrolledVertically) {
+                return;
+            }
 
-        // 初期方向の判定（一度だけ実行）
-        if (initialDirection === null && (absDeltaX > INITIAL_MOVE_THRESHOLD || absDeltaY > INITIAL_MOVE_THRESHOLD)) {
-            // 角度を計算（0度 = 水平、90度 = 垂直）
-            const angle = Math.atan2(absDeltaY, absDeltaX) * (180 / Math.PI);
+            const touchendX = e.changedTouches[0].screenX;
+            const deltaX = touchendX - touchstartX;
 
-            // より厳密な判定
-            // 水平スワイプ: 角度が0-20度の範囲内
-            // 垂直スクロール: 角度が70-90度の範囲内
-            if (angle < HORIZONTAL_ANGLE_LIMIT) {
-                initialDirection = 'horizontal';
-                isScrolling = false;
-            } else if (angle > 70) {
-                initialDirection = 'vertical';
-                isScrolling = true;
-            } else {
-                // 曖昧な角度の場合は、より大きな移動量で判定
-                if (absDeltaY > absDeltaX * 1.5) {
-                    initialDirection = 'vertical';
-                    isScrolling = true;
-                } else if (absDeltaX > absDeltaY * 2) {
-                    initialDirection = 'horizontal';
-                    isScrolling = false;
-                } else {
-                    // まだ判定しない
-                    return;
+            // 水平方向の移動が閾値を超えた場合のみ、横スワイプと判定
+            if (Math.abs(deltaX) > horizontalSwipeThreshold) {
+                const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
+                const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
+
+                // 右スワイプ（Xが増加）なら左のタブへ、左スワイプ（Xが減少）なら右のタブへ
+                let nextIndex = (deltaX > 0) ? currentIndex - 1 : currentIndex + 1;
+
+                if (nextIndex < 0) {
+                    nextIndex = tabButtons.length - 1;
+                } else if (nextIndex >= tabButtons.length) {
+                    nextIndex = 0;
+                }
+
+                if (tabButtons[nextIndex]) {
+                    tabButtons[nextIndex].click();
                 }
             }
-        }
-
-        // 垂直スクロールと判定されたら、以降の処理をスキップ
-        if (isScrolling === true) {
-            return;
-        }
-
-        // 水平スワイプの閾値チェック
-        if (isScrolling === false && absDeltaX > MIN_SWIPE_DISTANCE) {
-            // 現在の角度も再チェック（途中で角度が変わった場合の対策）
-            const currentAngle = Math.atan2(absDeltaY, absDeltaX) * (180 / Math.PI);
-            if (currentAngle < HORIZONTAL_ANGLE_LIMIT * 1.5) { // 少し余裕を持たせる
-                swipeThresholdMet = true;
-            } else {
-                // 角度が大きくなったら水平スワイプをキャンセル
-                isScrolling = null;
-                swipeThresholdMet = false;
-            }
-        }
-    }, { passive: true });
-
-    contentArea.addEventListener('touchend', e => {
-        if (!touchstartX || !touchstartY) return;
-
-        const touchendX = e.changedTouches[0].screenX;
-        const touchendY = e.changedTouches[0].screenY;
-
-        const deltaX = touchendX - touchstartX;
-        const deltaY = touchendY - touchstartY;
-        const absDeltaX = Math.abs(deltaX);
-        const absDeltaY = Math.abs(deltaY);
-
-        // 最終角度を計算
-        const finalAngle = Math.atan2(absDeltaY, absDeltaX) * (180 / Math.PI);
-
-        // 水平スワイプの実行条件：
-        // 1. 初期方向が水平と判定された
-        // 2. 垂直スクロールではない
-        // 3. 閾値を満たした
-        // 4. 最終角度も許容範囲内
-        if (initialDirection === 'horizontal' &&
-            isScrolling === false &&
-            swipeThresholdMet &&
-            finalAngle < HORIZONTAL_ANGLE_LIMIT * 1.5 &&
-            absDeltaX > MIN_SWIPE_DISTANCE) {
-
-            const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
-            const currentIndex = tabButtons.findIndex(b => b.classList.contains('active'));
-
-            // 右スワイプ（deltaX > 0）でインデックスを減算、左スワイプで加算
-            let nextIndex = (deltaX > 0) ? currentIndex - 1 : currentIndex + 1;
-
-            // 循環処理
-            if (nextIndex < 0) {
-                nextIndex = tabButtons.length - 1;
-            } else if (nextIndex >= tabButtons.length) {
-                nextIndex = 0;
-            }
-
-            // タブ切り替え実行
-            if (tabButtons[nextIndex]) {
-                tabButtons[nextIndex].click();
-            }
-        }
-
-        // リセット
-        touchstartX = 0;
-        touchstartY = 0;
-        touchmoveX = 0;
-        touchmoveY = 0;
-        isScrolling = null;
-        initialDirection = null;
-        swipeThresholdMet = false;
-    }, { passive: true });
-
-    // タッチキャンセル時のリセット
-    contentArea.addEventListener('touchcancel', e => {
-        touchstartX = 0;
-        touchstartY = 0;
-        touchmoveX = 0;
-        touchmoveY = 0;
-        isScrolling = null;
-        initialDirection = null;
-        swipeThresholdMet = false;
-    }, { passive: true });
-}
+        }, { passive: true });
+    }
 
     // --- Auto Reload Function ---
     function setupAutoReload() {
