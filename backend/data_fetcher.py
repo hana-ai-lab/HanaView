@@ -1296,50 +1296,44 @@ class MarketDataFetcher:
     def generate_indicators_commentary(self):
         """Generates AI commentary for economic indicators and earnings announcements."""
         logger.info("Generating indicators AI commentary...")
+        jst = timezone(timedelta(hours=9))
+        today = datetime.now(jst)
+        is_monday = today.weekday() == 0
 
         # --- Part 1: Economic Indicators ---
         try:
             economic_indicators = self.data.get("indicators", {}).get("economic", [])
 
-            # Define keywords for impactful 2-star indicators
-            impactful_keywords = [
-                "物価", "CPI", "PPI", # Inflation
-                "雇用", "失業", # Employment
-                "小売", # Retail
-                "GDP", # GDP
-                "生産", "PMI", "ISM", # Manufacturing/Services
-                "住宅", "建設", # Housing
-                "景況感", "消費者信頼感" # Sentiment
-            ]
+            # 1. Filter for US indicators only
+            us_indicators = [ind for ind in economic_indicators if "🇺🇸" in ind.get("name", "")]
 
-            # 3-star indicators are always included.
-            # 2-star indicators are included if their name contains an impactful keyword.
-            important_indicators = [
-                ind for ind in economic_indicators
-                if ind.get("importance") and (
-                    "★★★" in ind["importance"] or
-                    (
-                        "★★" in ind["importance"] and
-                        any(keyword in ind.get("name", "") for keyword in impactful_keywords)
-                    )
-                )
-            ]
+            # 2. Sort by importance (★★★ > ★★ > ★)
+            def sort_key(indicator):
+                importance = indicator.get("importance", "")
+                if "★★★" in importance: return 0
+                if "★★" in importance: return 1
+                if "★" in importance: return 2
+                return 3
+            us_indicators.sort(key=sort_key)
 
-            if not important_indicators:
+            if not us_indicators:
                 self.data['indicators']['economic_commentary'] = "なし"
-            else:
-                indicators_str = "\n".join([f"- {ind['name']} (重要度: {ind['importance']}): 前回: {ind['previous']}, 市場予測: {ind['forecast']}" for ind in important_indicators])
+                return # Skip to earnings part
 
+            if is_monday:
+                # On Monday, take top 25 for the week
+                target_indicators = us_indicators[:25]
+                indicators_str = "\n".join([f"- {ind['name']} (重要度: {ind['importance']}): 前回: {ind['previous']}, 市場予測: {ind['forecast']}" for ind in target_indicators])
                 prompt = f"""
-                あなたはプロの金融アナリストです。以下の経済指標について、日本の個人投資家向けに市場への影響を解説してください。
+                あなたはプロの金融アナリストです。以下の今週発表される**米国の主要な経済指標**リストの中から、特に重要なものを**5つ程度**選び出し、週間の見通しを解説してください。
 
-                # 分析対象の経済指標
+                # 分析対象の経済指標 (今週発表される米国指標、重要度順に最大25件)
                 {indicators_str}
 
                 # 指示
-                1.  アメリカの指標優先で解説してください。
-                2.  各指標について、予測に対する結果が「上振れ」「下振れ」「同等」だった場合に、それぞれ株式市場（特に米国株や日本株）にどのような影響（ポジティブ/ネガティブ）を与えうるかを簡潔に解説してください。
-                3.  複数の指標について解説する場合は、指標ごとに改行して見やすくしてください。
+                1.  リストの中から、株式市場に最も影響を与えうる最重要指標を**5つ程度**選んでください。
+                2.  選んだ指標について、それぞれの重要性と、結果が市場予測に比べて「上振れ」「下振れ」した場合に株価へどのような影響を与えうるかを解説してください。
+                3.  全体を**400字程度**にまとめ、今週の相場を展望する上でのポイントを明確にしてください。
                 4.  専門用語を避け、分かりやすい言葉で説明してください。
                 5.  解説文のみを生成してください。前置きや結びの言葉は不要です。
 
@@ -1348,38 +1342,21 @@ class MarketDataFetcher:
                     "response": "ここに解説を記述"
                 }}
                 """
-                messages = [
-                    {"role": "system", "content": "You are a helpful assistant designed to output JSON."},
-                    {"role": "user", "content": prompt}
-                ]
-                response_json = self._call_openai_api(messages=messages, max_tokens=600, response_format={"type": "json_object"})
-                self.data['indicators']['economic_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
-
-        except Exception as e:
-            logger.error(f"Failed to generate economic indicators commentary: {e}")
-            self.data['indicators']['economic_commentary'] = "経済指標のAI解説生成中にエラーが発生しました。"
-
-        # --- Part 2: Earnings Announcements ---
-        try:
-            us_earnings = self.data.get("indicators", {}).get("us_earnings", [])
-            jp_earnings = self.data.get("indicators", {}).get("jp_earnings", [])
-            all_earnings = us_earnings + jp_earnings
-
-            if not all_earnings:
-                self.data['indicators']['earnings_commentary'] = "なし"
+                max_tokens = 800 # Allow more tokens for summarization
             else:
-                earnings_str = "\n".join([f"- {earning['company']} ({earning['ticker']})" for earning in all_earnings])
-
+                # On other days, use all available US indicators for the day
+                target_indicators = us_indicators
+                indicators_str = "\n".join([f"- {ind['name']} (重要度: {ind['importance']}): 前回: {ind['previous']}, 市場予測: {ind['forecast']}" for ind in target_indicators])
                 prompt = f"""
-                あなたはプロの金融アナリストです。以下の企業の決算発表について、日本の個人投資家向けに解説してください。
+                あなたはプロの金融アナリストです。以下の本日発表される**米国の経済指標**の中から、最も重要なものを**3つ程度**選び、日本の個人投資家向けに市場への影響を**300字程度**で解説してください。
 
-                # 注目決算リスト
-                {earnings_str}
+                # 分析対象の経済指標 (本日発表される米国指標)
+                {indicators_str}
 
                 # 指示
-                1.  リストされた各企業について、現在の市場がどのような期待を持っているか（ポジティブかネガティブか、注目点は何か）を解説してください。
-                2.  決算発表後の株価が、市場の期待を「上回った場合」と「下回った場合」にそれぞれどのような反応を示す可能性があるかを説明してください。
-                3.  企業ごとに改行して見やすくしてください。
+                1.  各指標について、予測に対する結果が「上振れ」「下振れ」「同等」だった場合に、それぞれ株式市場（特に米国株や日本株）にどのような影響（ポジティブ/ネガティブ）を与えうるかを簡潔に解説してください。
+                2.  複数の指標について解説する場合は、指標ごとに改行して見やすくしてください。
+                3.  専門用語を避け、分かりやすい言葉で説明してください。
                 4.  解説文のみを生成してください。前置きや結びの言葉は不要です。
 
                 # 出力形式
@@ -1387,11 +1364,83 @@ class MarketDataFetcher:
                     "response": "ここに解説を記述"
                 }}
                 """
+                max_tokens = 600
+
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant designed to output JSON."},
+                {"role": "user", "content": prompt}
+            ]
+            response_json = self._call_openai_api(messages=messages, max_tokens=max_tokens, response_format={"type": "json_object"})
+            self.data['indicators']['economic_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
+
+        except Exception as e:
+            logger.error(f"Failed to generate economic indicators commentary: {e}")
+            self.data['indicators']['economic_commentary'] = "経済指標のAI解説生成中にエラーが発生しました。"
+
+        # --- Part 2: Earnings Announcements ---
+        try:
+            # 1. Filter for US earnings only
+            us_earnings = self.data.get("indicators", {}).get("us_earnings", [])
+
+            if not us_earnings:
+                self.data['indicators']['earnings_commentary'] = "なし"
+            else:
+                # 2. Sort by importance (tickers in US_TICKER_LIST are prioritized)
+                def earnings_sort_key(earning):
+                    return 0 if earning.get("ticker") in US_TICKER_LIST else 1
+                us_earnings.sort(key=earnings_sort_key)
+
+                if is_monday:
+                    # On Monday, limit to top 30 companies for the week
+                    target_earnings = us_earnings[:30]
+                    earnings_str = "\n".join([f"- {earning.get('company', '')} ({earning.get('ticker')})" for earning in target_earnings])
+                    prompt = f"""
+                    あなたはプロの金融アナリストです。以下の今週決算発表を予定している**米国の主要企業リスト**の中から、特に重要なものを**5社程度**選び出し、週間の見通しを解説してください。
+
+                    # 分析対象の主要企業 (今週決算発表、重要度順に最大30社)
+                    {earnings_str}
+
+                    # 指示
+                    1.  リストの中から、市場全体への影響が大きい、あるいは投資家の注目度が特に高い企業を**5社程度**選んでください。
+                    2.  選んだ企業について、市場がどのような期待を持っているか、そして決算結果がその期待を上回った場合／下回った場合に株価がどう反応しうるかを解説してください。
+                    3.  全体を**400字程度**にまとめ、今週の決算シーズンを展望する上でのポイントを明確にしてください。
+                    4.  解説文のみを生成してください。前置きや結びの言葉は不要です。
+
+                    # 出力形式
+                    {{
+                        "response": "ここに解説を記述"
+                    }}
+                    """
+                    max_tokens = 800
+                else:
+                    # On other days, limit to top 15 for the day
+                    target_earnings = us_earnings[:15]
+                    earnings_str = "\n".join([f"- {earning.get('company', '')} ({earning.get('ticker')})" for earning in target_earnings])
+                    prompt = f"""
+                    あなたはプロの金融アナリストです。以下の本日決算発表を予定している**米国企業リスト**の中から、注目すべきものを**3〜5社**選び、日本の個人投資家向けに解説してください。
+
+                    # 分析対象の企業 (本日決算発表、重要度順に最大15社)
+                    {earnings_str}
+
+                    # 指示
+                    1.  リストの中から、特に注目すべき企業を**3〜5社**選んでください。
+                    2.  選んだ各企業について、市場の期待（ポジティブかネガティブか、注目点など）と、決算結果によって株価がどう反応しうるかを簡潔に解説してください。
+                    3.  全体を**300字程度**にまとめてください。
+                    4.  企業ごとに改行して見やすくしてください。
+                    5.  解説文のみを生成してください。前置きや結びの言葉は不要です。
+
+                    # 出力形式
+                    {{
+                        "response": "ここに解説を記述"
+                    }}
+                    """
+                    max_tokens = 600
+
                 messages = [
                     {"role": "system", "content": "You are a helpful assistant designed to output JSON."},
                     {"role": "user", "content": prompt}
                 ]
-                response_json = self._call_openai_api(messages=messages, max_tokens=800, response_format={"type": "json_object"})
+                response_json = self._call_openai_api(messages=messages, max_tokens=max_tokens, response_format={"type": "json_object"})
                 self.data['indicators']['earnings_commentary'] = response_json.get('response', 'AI解説の生成に失敗しました。')
 
         except Exception as e:
