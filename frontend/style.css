@@ -770,3 +770,143 @@ body {
         opacity: 0;
     }
 }
+
+/* --- World Tab Styles --- */
+#world-content {
+    padding: 10px;
+}
+
+.world-category-header {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--text-primary);
+    margin: 20px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 2px solid var(--tab-text);
+}
+
+.world-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.world-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    height: 200px; /* Fixed height for consistent card size */
+}
+
+.world-card.error {
+    justify-content: center;
+    align-items: center;
+    color: #ef5350;
+    text-align: center;
+}
+
+
+.world-card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.world-card-flag {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #eee;
+}
+
+.world-card-name {
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.world-card-body {
+    display: flex;
+    flex-grow: 1; /* Allow body to fill available space */
+    gap: 10px;
+}
+
+.world-card-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: 45%;
+}
+
+.world-card-right {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.world-card-perf {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.world-card-perf.positive {
+    color: #26a69a;
+}
+
+.world-card-perf.negative {
+    color: #ef5350;
+}
+
+.world-card-chart {
+    width: 100%;
+    flex-grow: 1;
+    min-height: 50px; /* Ensure chart has some space */
+}
+
+.world-card-values {
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: auto; /* Push to the bottom */
+}
+
+.world-price {
+    color: #333;
+    text-align: left;
+}
+
+.world-change {
+    text-align: right;
+}
+
+.world-change.positive {
+    color: #26a69a;
+}
+
+.world-change.negative {
+    color: #ef5350;
+}
+
+
+@media (min-width: 768px) {
+    .world-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .world-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}

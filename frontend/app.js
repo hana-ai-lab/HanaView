@@ -422,6 +422,120 @@ document.addEventListener('DOMContentLoaded', () => {
         card.innerHTML = `<div class="ai-commentary"><div class="ai-header"><h3>AI解説</h3>${dateHtml}</div><p>${commentary.replace(/\n/g, '<br>')}</p></div>`;
         container.appendChild(card);
     }
+    function renderWorldTab(container, worldData) {
+        if (!container || !worldData || Object.keys(worldData).length === 0) {
+            if(container) container.innerHTML = '<div class="card"><p>World index data is not available.</p></div>';
+            return;
+        }
+        container.innerHTML = ''; // Clear previous content
+
+        const flagBaseUrl = 'https://flagcdn.com/w40/';
+        const countryFlagMap = {
+            JP: `${flagBaseUrl}jp.png`,
+            US: `${flagBaseUrl}us.png`,
+            DE: `${flagBaseUrl}de.png`,
+            FR: `${flagBaseUrl}fr.png`,
+            GB: `${flagBaseUrl}gb.png`,
+            HK: `${flagBaseUrl}hk.png`,
+            CN: `${flagBaseUrl}cn.png`,
+            KR: `${flagBaseUrl}kr.png`,
+            TW: `${flagBaseUrl}tw.png`,
+            FX: 'icons/currency.png', // Custom icon for Forex
+            CM: 'icons/commodity.png' // Custom icon for Commodity
+        };
+
+        for (const category in worldData) {
+            const indices = worldData[category];
+            if (indices.length === 0) continue;
+
+            const categoryHeader = document.createElement('h3');
+            categoryHeader.className = 'world-category-header';
+            categoryHeader.textContent = category;
+            container.appendChild(categoryHeader);
+
+            const grid = document.createElement('div');
+            grid.className = 'world-grid';
+            container.appendChild(grid);
+
+            indices.forEach(index => {
+                const card = document.createElement('div');
+                card.className = 'world-card';
+
+                if (index.error) {
+                    card.classList.add('error');
+                    card.innerHTML = `<p><strong>${index.name}</strong><br>データ取得失敗</p>`;
+                    grid.appendChild(card);
+                    return;
+                }
+
+                const isPositive = index.percent_change >= 0;
+            const perfClass = isPositive ? 'positive' : 'negative';
+            const changeSign = isPositive ? '+' : '';
+
+            card.innerHTML = `
+                <div class="world-card-header">
+                    <img src="${countryFlagMap[index.country_code] || ''}" alt="${index.country_code}" class="world-card-flag" onerror="this.style.display='none'">
+                    <span class="world-card-name">${index.name}</span>
+                </div>
+                <div class="world-card-body">
+                    <div class="world-card-left">
+                        <div class="world-card-perf ${perfClass}">${changeSign}${index.percent_change.toFixed(2)}%</div>
+                        <div class="world-card-values">
+                             <div class="world-price">${index.current_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                             <div class="world-change ${perfClass}">${changeSign}${index.change.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        </div>
+                    </div>
+                    <div class="world-card-right">
+                        <div id="chart-${index.ticker.replace(/[^a-zA-Z0-9]/g, '')}" class="world-card-chart"></div>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+
+            // Render chart
+            if (index.chart_data && index.chart_data.length > 0) {
+                const chartContainer = document.getElementById(`chart-${index.ticker.replace(/[^a-zA-Z0-9]/g, '')}`);
+
+                const trace = {
+                    x: index.chart_data.map(d => new Date(d.time)),
+                    y: index.chart_data.map(d => d.value),
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: {
+                        color: isPositive ? '#26a69a' : '#ef5350',
+                        width: 2
+                    }
+                };
+
+                const layout = {
+                    margin: { l: 0, r: 0, t: 0, b: 0 },
+                    xaxis: {
+                        visible: false,
+                        showgrid: false,
+                        zeroline: false,
+                        range: [trace.x[0], trace.x[trace.x.length - 1]]
+                    },
+                    yaxis: {
+                        visible: false,
+                        showgrid: false,
+                        zeroline: false
+                    },
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    autosize: true
+                };
+
+                const config = {
+                    responsive: true,
+                    displayModeBar: false
+                }
+
+                Plotly.newPlot(chartContainer, [trace], layout, config);
+            }
+        });
+        }
+    }
+
     function renderAllData(data) {
         console.log("Rendering all data:", data);
         const lastUpdatedEl = document.getElementById('last-updated');
@@ -438,6 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderHeatmapCommentary(document.getElementById('sp500-commentary'), data.sp500_heatmap?.ai_commentary, data.last_updated);
         renderIndicators(document.getElementById('indicators-content'), data.indicators, data.last_updated);
         renderColumn(document.getElementById('column-content'), data.column);
+        renderWorldTab(document.getElementById('world-content'), data.world);
     }
 
     // --- Swipe Navigation ---
