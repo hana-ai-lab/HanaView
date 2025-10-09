@@ -46,14 +46,10 @@ T_NOTE_TICKER = "^TNX"
 WORLD_INDICES = {
     "日本": [
         {"name": "日経平均", "ticker": "^N225", "country_code": "JP", "description": "東証 日経225平均"},
-        {"name": "日経時間外", "ticker": "NI=F", "country_code": "JP", "description": "D WED N225"},
-        {"name": "TOPIX", "ticker": "^TPX", "country_code": "JP", "description": "東証 トピックス"},
-        {"name": "グロース250", "ticker": "^TJG250", "country_code": "JP", "description": "東証"},
-        {"name": "日経恐怖指数 日経VI", "ticker": "^JNIV", "country_code": "JP", "description": "日経VI"},
+        {"name": "日経時間外", "ticker": "NIY=F", "country_code": "JP", "description": "Nikkei/Yen Futures"},
     ],
     "米国": [
         {"name": "ダウ", "ticker": "^DJI", "country_code": "US", "description": "ダウ30"},
-        {"name": "サンダーダウ", "ticker": "DOW=F", "country_code": "US", "description": "Weekend Dow"},
         {"name": "ナスダック", "ticker": "^IXIC", "country_code": "US", "description": "ナスダック総合"},
         {"name": "S&P500", "ticker": "^GSPC", "country_code": "US", "description": "S&P500"},
         {"name": "SOX指数", "ticker": "^SOX", "country_code": "US", "description": "フィラデルフィア半導体指数"},
@@ -62,9 +58,6 @@ WORLD_INDICES = {
     ],
     "債券": [
         {"name": "米国債10年", "ticker": "^TNX", "country_code": "US", "description": "10年債利回り"},
-        {"name": "日本国債10年", "ticker": "^TNJ", "country_code": "JP", "description": "10年債利回り"},
-        {"name": "米国債2年", "ticker": "^TWO", "country_code": "US", "description": "2年債利回り"},
-        {"name": "SOFR3ヶ月", "ticker": "SOFR3M=F", "country_code": "US", "description": "3ヶ月先物"},
     ],
     "為替": [
         {"name": "ドル円", "ticker": "JPY=X", "country_code": "FX", "description": "USD/JPY"},
@@ -97,7 +90,7 @@ WORLD_INDICES = {
         {"name": "フランス CAC40", "ticker": "^FCHI", "country_code": "FR", "description": "CAC40指数"},
         {"name": "イタリア MIB", "ticker": "FTSEMIB.MI", "country_code": "IT", "description": "FTSE MIB指数"},
         {"name": "スイス SMI", "ticker": "^SSMI", "country_code": "CH", "description": "SMI指数"},
-        {"name": "ロシア RTSI", "ticker": "RTSI.ME", "country_code": "RU", "description": "RTSI指数"},
+        {"name": "ロシア MOEX", "ticker": "IMOEX.ME", "country_code": "RU", "description": "MOEX Russia Index"},
     ],
     "ピックアップ": [
         {"name": "FANG+", "ticker": "^NYFANG", "country_code": "US", "description": "NYSE FANG+ Index"},
@@ -107,7 +100,7 @@ WORLD_INDICES = {
         {"name": "インド Nifty", "ticker": "^NSEI", "country_code": "IN", "description": "NIFTY 50"},
         {"name": "マレーシア KLCI", "ticker": "^KLSE", "country_code": "MY", "description": "FTSE Bursa Malaysia KLCI"},
         {"name": "タイ SET指数", "ticker": "^SET.BK", "country_code": "TH", "description": "SET Index"},
-        {"name": "ベトナム", "ticker": "^VNI", "country_code": "VN", "description": "VN-Index"},
+        {"name": "ベトナム", "ticker": "^VNINDEX.VN", "country_code": "VN", "description": "VN-Index"},
         {"name": "シンガポールSTI", "ticker": "^STI", "country_code": "SG", "description": "Straits Times Index"},
         {"name": "インドネシアJKSE", "ticker": "^JKSE", "country_code": "ID", "description": "Jakarta Composite Index"},
     ],
@@ -124,7 +117,7 @@ WORLD_INDICES = {
     "中東･アフリカ": [
         {"name": "トルコ Borsa100", "ticker": "XU100.IS", "country_code": "TR", "description": "BIST 100"},
         {"name": "ドバイ UAE", "ticker": "DFMGI.AE", "country_code": "AE", "description": "DFM General Index"},
-        {"name": "南アフリカ", "ticker": "^JALSH", "country_code": "ZA", "description": "FTSE/JSE All Share"},
+        {"name": "南アフリカ", "ticker": "J203.L", "country_code": "ZA", "description": "FTSE/JSE All Share"},
         {"name": "サウジアラビア", "ticker": "^TASI.SR", "country_code": "SA", "description": "Tadawul All Share Index"},
     ],
 }
