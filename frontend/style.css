@@ -771,7 +771,7 @@ body {
     }
 }
 
-/* --- World Tab Styles --- */
+/* --- World Tab Styles (New Design) --- */
 #world-content {
     padding: 10px;
 }
@@ -791,113 +791,139 @@ body {
     gap: 10px;
 }
 
-.world-card {
-    background-color: #fff;
+.world-card-new {
+    background-color: var(--card-background);
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    height: 200px; /* Fixed height for consistent card size */
+    gap: 10px;
 }
 
-.world-card.error {
+.world-card-new.error {
     justify-content: center;
     align-items: center;
     color: #ef5350;
     text-align: center;
+    min-height: 150px;
 }
 
-
-.world-card-header {
+.world-card-new-header {
     display: flex;
     align-items: center;
-    margin-bottom: 5px;
+    gap: 8px;
 }
 
-.world-card-flag {
-    width: 24px;
-    height: 24px;
-    margin-right: 8px;
+.flag-icon {
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     object-fit: cover;
     border: 1px solid #eee;
 }
 
-.world-card-name {
-    font-size: 14px;
+.index-name {
     font-weight: bold;
-    color: #333;
+    font-size: 14px;
+    color: var(--text-primary);
+    flex-grow: 1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.world-card-body {
+.volatility-index {
+    font-size: 11px;
+    color: var(--text-secondary);
+    background-color: #f0f0f0;
+    padding: 2px 5px;
+    border-radius: 4px;
+}
+
+.world-card-new-body {
     display: flex;
-    flex-grow: 1; /* Allow body to fill available space */
+    align-items: center;
     gap: 10px;
 }
 
-.world-card-left {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
-    width: 45%;
+.chart-container-new {
+    width: 50%;
+    position: relative;
 }
 
-.world-card-right {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.world-card-perf {
-    font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.world-card-perf.positive {
-    color: #26a69a;
-}
-
-.world-card-perf.negative {
-    color: #ef5350;
-}
-
-.world-card-chart {
+.chart-container-new svg {
     width: 100%;
-    flex-grow: 1;
-    min-height: 50px; /* Ensure chart has some space */
+    height: auto;
+    display: block;
 }
 
-.world-card-values {
+.grid-line {
+    stroke: #e0e0e0;
+    stroke-width: 0.5;
+}
+
+.grid-line.dashed {
+    stroke-dasharray: 2, 2;
+}
+
+.chart-line.positive {
+    stroke: #26a69a;
+}
+
+.chart-line.negative {
+    stroke: #ef5350;
+}
+
+.chart-labels {
+    position: absolute;
+    top: -2px;
+    left: 0;
+    right: 0;
+    bottom: -2px;
     display: flex;
     flex-direction: column;
-    font-size: 14px;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-secondary);
+}
+
+.max-value {
+    align-self: flex-start;
+}
+
+.min-value {
+    align-self: flex-end;
+}
+
+.price-info {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.current-price {
+    font-size: 18px;
     font-weight: bold;
-    margin-top: auto; /* Push to the bottom */
+    color: var(--text-primary);
 }
 
-.world-price {
-    color: #333;
-    text-align: left;
+.price-change {
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
 }
 
-.world-change {
-    text-align: right;
-}
+.price-change.positive { color: #26a69a; }
+.price-change.negative { color: #ef5350; }
 
-.world-change.positive {
-    color: #26a69a;
+.percent-change {
+    font-size: 12px;
 }
-
-.world-change.negative {
-    color: #ef5350;
-}
-
 
 @media (min-width: 768px) {
     .world-grid {

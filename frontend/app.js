@@ -424,24 +424,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function renderWorldTab(container, worldData) {
         if (!container || !worldData || Object.keys(worldData).length === 0) {
-            if(container) container.innerHTML = '<div class="card"><p>World index data is not available.</p></div>';
+            if (container) container.innerHTML = '<div class="card"><p>World index data is not available.</p></div>';
             return;
         }
         container.innerHTML = ''; // Clear previous content
 
         const flagBaseUrl = 'https://flagcdn.com/w40/';
         const countryFlagMap = {
-            JP: `${flagBaseUrl}jp.png`,
-            US: `${flagBaseUrl}us.png`,
-            DE: `${flagBaseUrl}de.png`,
-            FR: `${flagBaseUrl}fr.png`,
-            GB: `${flagBaseUrl}gb.png`,
-            HK: `${flagBaseUrl}hk.png`,
-            CN: `${flagBaseUrl}cn.png`,
-            KR: `${flagBaseUrl}kr.png`,
-            TW: `${flagBaseUrl}tw.png`,
-            FX: 'icons/currency.png', // Custom icon for Forex
-            CM: 'icons/commodity.png' // Custom icon for Commodity
+            JP: `${flagBaseUrl}jp.png`, US: `${flagBaseUrl}us.png`, DE: `${flagBaseUrl}de.png`,
+            FR: `${flagBaseUrl}fr.png`, GB: `${flagBaseUrl}gb.png`, HK: `${flagBaseUrl}hk.png`,
+            CN: `${flagBaseUrl}cn.png`, KR: `${flagBaseUrl}kr.png`, TW: `${flagBaseUrl}tw.png`,
+            FX: 'icons/currency.png', CM: 'icons/commodity.png'
         };
 
         for (const category in worldData) {
@@ -459,7 +452,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             indices.forEach(index => {
                 const card = document.createElement('div');
-                card.className = 'world-card';
+                card.className = 'world-card-new'; // Use a new class for the new design
 
                 if (index.error) {
                     card.classList.add('error');
@@ -468,71 +461,47 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                const isPositive = index.percent_change >= 0;
-            const perfClass = isPositive ? 'positive' : 'negative';
-            const changeSign = isPositive ? '+' : '';
+                const isPositive = index.isPositive;
+                const perfClass = isPositive ? 'positive' : 'negative';
+                const changeSign = isPositive ? '+' : '';
 
-            card.innerHTML = `
-                <div class="world-card-header">
-                    <img src="${countryFlagMap[index.country_code] || ''}" alt="${index.country_code}" class="world-card-flag" onerror="this.style.display='none'">
-                    <span class="world-card-name">${index.name}</span>
-                </div>
-                <div class="world-card-body">
-                    <div class="world-card-left">
-                        <div class="world-card-perf ${perfClass}">${changeSign}${index.percent_change.toFixed(2)}%</div>
-                        <div class="world-card-values">
-                             <div class="world-price">${index.current_price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
-                             <div class="world-change ${perfClass}">${changeSign}${index.change.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                // Use the keys from the backend directly, as they are pre-formatted strings
+                const formattedPrice = index.currentValue || 'N/A';
+                const formattedChange = index.changeValue || 'N/A';
+                const formattedPercentChange = index.percentage || 'N/A';
+
+                card.innerHTML = `
+                    <div class="world-card-new-header">
+                        <img src="${countryFlagMap[index.country_code] || 'icons/default.png'}" alt="${index.country_code}" class="flag-icon" onerror="this.style.display='none'">
+                        <span class="index-name">${index.name}</span>
+                        <span class="volatility-index">${index.volatilityIndex || ''}</span>
+                    </div>
+                    <div class="world-card-new-body">
+                        <div class="chart-container-new">
+                            <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+                                <line x1="0" y1="0"   x2="300" y2="0"   class="grid-line"></line>
+                                <line x1="0" y1="25"  x2="300" y2="25"  class="grid-line dashed"></line>
+                                <line x1="0" y1="50"  x2="300" y2="50"  class="grid-line"></line>
+                                <line x1="0" y1="75"  x2="300" y2="75"  class="grid-line dashed"></line>
+                                <line x1="0" y1="100" x2="300" y2="100" class="grid-line"></line>
+                                <polyline points="${index.chartData || ''}" class="chart-line ${perfClass}" fill="none" stroke-width="2"></polyline>
+                            </svg>
+                            <div class="chart-labels">
+                                <span class="max-value">${index.maxValue || ''}</span>
+                                <span class="min-value">${index.minValue || ''}</span>
+                            </div>
+                        </div>
+                        <div class="price-info">
+                            <div class="current-price">${formattedPrice}</div>
+                            <div class="price-change ${perfClass}">
+                                <span>${changeSign}${formattedChange}</span>
+                                <span class="percent-change">(${changeSign}${formattedPercentChange}%)</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="world-card-right">
-                        <div id="chart-${index.ticker.replace(/[^a-zA-Z0-9]/g, '')}" class="world-card-chart"></div>
-                    </div>
-                </div>
-            `;
-            grid.appendChild(card);
-
-            // Render chart
-            if (index.chart_data && index.chart_data.length > 0) {
-                const chartContainer = document.getElementById(`chart-${index.ticker.replace(/[^a-zA-Z0-9]/g, '')}`);
-
-                const trace = {
-                    x: index.chart_data.map(d => new Date(d.time)),
-                    y: index.chart_data.map(d => d.value),
-                    type: 'scatter',
-                    mode: 'lines',
-                    line: {
-                        color: isPositive ? '#26a69a' : '#ef5350',
-                        width: 2
-                    }
-                };
-
-                const layout = {
-                    margin: { l: 0, r: 0, t: 0, b: 0 },
-                    xaxis: {
-                        visible: false,
-                        showgrid: false,
-                        zeroline: false,
-                        range: [trace.x[0], trace.x[trace.x.length - 1]]
-                    },
-                    yaxis: {
-                        visible: false,
-                        showgrid: false,
-                        zeroline: false
-                    },
-                    paper_bgcolor: 'rgba(0,0,0,0)',
-                    plot_bgcolor: 'rgba(0,0,0,0)',
-                    autosize: true
-                };
-
-                const config = {
-                    responsive: true,
-                    displayModeBar: false
-                }
-
-                Plotly.newPlot(chartContainer, [trace], layout, config);
-            }
-        });
+                `;
+                grid.appendChild(card);
+            });
         }
     }
 

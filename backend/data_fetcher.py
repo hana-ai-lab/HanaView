@@ -45,87 +45,87 @@ T_NOTE_TICKER = "^TNX"
 
 WORLD_INDICES = {
     "日本": [
-        {"name": "日経平均", "ticker": "^N225", "country_code": "JP"},
-        {"name": "日経時間外", "ticker": "NI=F", "country_code": "JP"},
-        {"name": "TOPIX", "ticker": "^TPX", "country_code": "JP"},
-        {"name": "日経VI", "ticker": "^JNIV", "country_code": "JP"},
-        {"name": "グロース250", "ticker": "^TJG250", "country_code": "JP"},
-        {"name": "JPX400", "ticker": "^JPX400", "country_code": "JP"},
+        {"name": "日経平均", "ticker": "^N225", "country_code": "JP", "description": "東証 日経225平均"},
+        {"name": "日経時間外", "ticker": "NI=F", "country_code": "JP", "description": "D WED N225"},
+        {"name": "TOPIX", "ticker": "^TPX", "country_code": "JP", "description": "東証 トピックス"},
+        {"name": "グロース250", "ticker": "^TJG250", "country_code": "JP", "description": "東証"},
+        {"name": "日経恐怖指数 日経VI", "ticker": "^JNIV", "country_code": "JP", "description": "日経VI"},
     ],
     "米国": [
-        {"name": "ダウ", "ticker": "^DJI", "country_code": "US"},
-        {"name": "ナスダック", "ticker": "^IXIC", "country_code": "US"},
-        {"name": "S&P500", "ticker": "^GSPC", "country_code": "US"},
-        {"name": "SOX指数", "ticker": "^SOX", "country_code": "US"},
-        {"name": "VIX", "ticker": "^VIX", "country_code": "US"},
-        {"name": "ラッセル2000", "ticker": "^RUT", "country_code": "US"},
+        {"name": "ダウ", "ticker": "^DJI", "country_code": "US", "description": "ダウ30"},
+        {"name": "サンダーダウ", "ticker": "DOW=F", "country_code": "US", "description": "Weekend Dow"},
+        {"name": "ナスダック", "ticker": "^IXIC", "country_code": "US", "description": "ナスダック総合"},
+        {"name": "S&P500", "ticker": "^GSPC", "country_code": "US", "description": "S&P500"},
+        {"name": "SOX指数", "ticker": "^SOX", "country_code": "US", "description": "フィラデルフィア半導体指数"},
+        {"name": "VIX", "ticker": "^VIX", "country_code": "US", "description": "VIX恐怖指数"},
+        {"name": "ラッセル2000", "ticker": "^RUT", "country_code": "US", "description": "ラッセル2000"},
     ],
     "債券": [
-        {"name": "米国債10年", "ticker": "^TNX", "country_code": "US"},
-        {"name": "日本国債10年", "ticker": "^TNJ", "country_code": "JP"},
-        {"name": "米国債2年", "ticker": "^TWO", "country_code": "US"},
-        {"name": "SOFR3ヶ月", "ticker": "SOFR3M=F", "country_code": "US"},
+        {"name": "米国債10年", "ticker": "^TNX", "country_code": "US", "description": "10年債利回り"},
+        {"name": "日本国債10年", "ticker": "^TNJ", "country_code": "JP", "description": "10年債利回り"},
+        {"name": "米国債2年", "ticker": "^TWO", "country_code": "US", "description": "2年債利回り"},
+        {"name": "SOFR3ヶ月", "ticker": "SOFR3M=F", "country_code": "US", "description": "3ヶ月先物"},
     ],
     "為替": [
-        {"name": "ドル円", "ticker": "JPY=X", "country_code": "FX"},
-        {"name": "ユーロ円", "ticker": "EURJPY=X", "country_code": "FX"},
-        {"name": "ポンド円", "ticker": "GBPJPY=X", "country_code": "FX"},
-        {"name": "豪ドル円", "ticker": "AUDJPY=X", "country_code": "FX"},
-        {"name": "カナダドル円", "ticker": "CADJPY=X", "country_code": "FX"},
-        {"name": "スイスフラン円", "ticker": "CHFJPY=X", "country_code": "FX"},
+        {"name": "ドル円", "ticker": "JPY=X", "country_code": "FX", "description": "USD/JPY"},
+        {"name": "ユーロ円", "ticker": "EURJPY=X", "country_code": "FX", "description": "EUR/JPY"},
+        {"name": "ポンド円", "ticker": "GBPJPY=X", "country_code": "FX", "description": "GBP/JPY"},
+        {"name": "豪ドル円", "ticker": "AUDJPY=X", "country_code": "FX", "description": "AUD/JPY"},
+        {"name": "カナダドル円", "ticker": "CADJPY=X", "country_code": "FX", "description": "CAD/JPY"},
+        {"name": "スイスフラン円", "ticker": "CHFJPY=X", "country_code": "FX", "description": "CHF/JPY"},
     ],
     "コモディティ": [
-        {"name": "ゴールド", "ticker": "GC=F", "country_code": "CM"},
-        {"name": "ゴールド(円)", "ticker": "GOLD-JPY", "country_code": "CM", "calculated": True},
-        {"name": "WTI原油", "ticker": "CL=F", "country_code": "CM"},
-        {"name": "北海ブレント", "ticker": "BZ=F", "country_code": "CM"},
-        {"name": "天然ガス", "ticker": "NG=F", "country_code": "CM"},
-        {"name": "銅", "ticker": "HG=F", "country_code": "CM"},
-        {"name": "ビットコイン", "ticker": "BTC-USD", "country_code": "CM"},
-        {"name": "イーサリアム", "ticker": "ETH-USD", "country_code": "CM"},
+        {"name": "ゴールド", "ticker": "GC=F", "country_code": "CM", "description": "金先物 (USD)"},
+        {"name": "ゴールド(円)", "ticker": "GOLD-JPY", "country_code": "CM", "description": "金 (円換算)", "calculated": True},
+        {"name": "WTI原油", "ticker": "CL=F", "country_code": "CM", "description": "原油先物"},
+        {"name": "北海ブレント", "ticker": "BZ=F", "country_code": "CM", "description": "ブレント原油先物"},
+        {"name": "天然ガス", "ticker": "NG=F", "country_code": "CM", "description": "天然ガス先物"},
+        {"name": "銅", "ticker": "HG=F", "country_code": "CM", "description": "銅先物"},
+        {"name": "ビットコイン", "ticker": "BTC-USD", "country_code": "CM", "description": "Bitcoin"},
+        {"name": "イーサリアム", "ticker": "ETH-USD", "country_code": "CM", "description": "Ethereum"},
     ],
     "北東アジア": [
-        {"name": "上海総合", "ticker": "000001.SS", "country_code": "CN"},
-        {"name": "CSI300", "ticker": "000300.SS", "country_code": "CN"},
-        {"name": "韓国 KOSPI", "ticker": "^KS11", "country_code": "KR"},
-        {"name": "香港 ハンセン", "ticker": "^HSI", "country_code": "HK"},
-        {"name": "台湾 加権", "ticker": "^TWII", "country_code": "TW"},
+        {"name": "上海総合", "ticker": "000001.SS", "country_code": "CN", "description": "上海総合指数"},
+        {"name": "CSI300", "ticker": "000300.SS", "country_code": "CN", "description": "CSI300指数"},
+        {"name": "韓国 KOSPI", "ticker": "^KS11", "country_code": "KR", "description": "韓国総合株価指数"},
+        {"name": "香港 ハンセン", "ticker": "^HSI", "country_code": "HK", "description": "香港ハンセン指数"},
+        {"name": "台湾 加権", "ticker": "^TWII", "country_code": "TW", "description": "台湾加権指数"},
     ],
     "欧州": [
-        {"name": "イギリス FTSE", "ticker": "^FTSE", "country_code": "GB"},
-        {"name": "ドイツ DAX", "ticker": "^GDAXI", "country_code": "DE"},
-        {"name": "フランス CAC40", "ticker": "^FCHI", "country_code": "FR"},
-        {"name": "イタリア MIB", "ticker": "FTSEMIB.MI", "country_code": "IT"},
-        {"name": "スイス SMI", "ticker": "^SSMI", "country_code": "CH"},
-        {"name": "ロシア RTSI", "ticker": "RTSI.ME", "country_code": "RU"},
+        {"name": "イギリス FTSE", "ticker": "^FTSE", "country_code": "GB", "description": "FTSE100指数"},
+        {"name": "ドイツ DAX", "ticker": "^GDAXI", "country_code": "DE", "description": "DAX指数"},
+        {"name": "フランス CAC40", "ticker": "^FCHI", "country_code": "FR", "description": "CAC40指数"},
+        {"name": "イタリア MIB", "ticker": "FTSEMIB.MI", "country_code": "IT", "description": "FTSE MIB指数"},
+        {"name": "スイス SMI", "ticker": "^SSMI", "country_code": "CH", "description": "SMI指数"},
+        {"name": "ロシア RTSI", "ticker": "RTSI.ME", "country_code": "RU", "description": "RTSI指数"},
     ],
     "ピックアップ": [
-        {"name": "FANG+", "ticker": "^NYFANG", "country_code": "US"},
-        {"name": "全世界株式 オルカン", "ticker": "ACWI", "country_code": "US"},
+        {"name": "FANG+", "ticker": "^NYFANG", "country_code": "US", "description": "NYSE FANG+ Index"},
+        {"name": "全世界株式 オルカン", "ticker": "ACWI", "country_code": "US", "description": "MSCI ACWI"},
     ],
     "新興アジア": [
-        {"name": "インド Nifty", "ticker": "^NSEI", "country_code": "IN"},
-        {"name": "マレーシア KLCI", "ticker": "^KLSE", "country_code": "MY"},
-        {"name": "タイ SET指数", "ticker": "^SET.BK", "country_code": "TH"},
-        {"name": "ベトナム", "ticker": "^VNI", "country_code": "VN"},
-        {"name": "シンガポールSTI", "ticker": "^STI", "country_code": "SG"},
-        {"name": "インドネシアJKSE", "ticker": "^JKSE", "country_code": "ID"},
+        {"name": "インド Nifty", "ticker": "^NSEI", "country_code": "IN", "description": "NIFTY 50"},
+        {"name": "マレーシア KLCI", "ticker": "^KLSE", "country_code": "MY", "description": "FTSE Bursa Malaysia KLCI"},
+        {"name": "タイ SET指数", "ticker": "^SET.BK", "country_code": "TH", "description": "SET Index"},
+        {"name": "ベトナム", "ticker": "^VNI", "country_code": "VN", "description": "VN-Index"},
+        {"name": "シンガポールSTI", "ticker": "^STI", "country_code": "SG", "description": "Straits Times Index"},
+        {"name": "インドネシアJKSE", "ticker": "^JKSE", "country_code": "ID", "description": "Jakarta Composite Index"},
     ],
     "オセアニア": [
-        {"name": "オーストラリアASX", "ticker": "^AXJO", "country_code": "AU"},
-        {"name": "ニュージーランド", "ticker": "^NZ50", "country_code": "NZ"},
+        {"name": "オーストラリアASX", "ticker": "^AXJO", "country_code": "AU", "description": "S&P/ASX 200"},
+        {"name": "ニュージーランド", "ticker": "^NZ50", "country_code": "NZ", "description": "S&P/NZX 50"},
     ],
     "アメリカ大陸": [
-        {"name": "カナダS&Pトロント総合", "ticker": "^GSPTSE", "country_code": "CA"},
-        {"name": "メキシコIPC", "ticker": "^MXX", "country_code": "MX"},
-        {"name": "アルゼンチン メンバル", "ticker": "^MERV", "country_code": "AR"},
-        {"name": "ブラジル ボベスパ", "ticker": "^BVSP", "country_code": "BR"},
+        {"name": "カナダS&Pトロント総合", "ticker": "^GSPTSE", "country_code": "CA", "description": "S&P/TSX Composite"},
+        {"name": "メキシコIPC", "ticker": "^MXX", "country_code": "MX", "description": "S&P/BMV IPC"},
+        {"name": "アルゼンチン メンバル", "ticker": "^MERV", "country_code": "AR", "description": "S&P Merval"},
+        {"name": "ブラジル ボベスパ", "ticker": "^BVSP", "country_code": "BR", "description": "IBOVESPA"},
     ],
     "中東･アフリカ": [
-        {"name": "トルコ Borsa100", "ticker": "XU100.IS", "country_code": "TR"},
-        {"name": "ドバイ UAE", "ticker": "DFMGI.AE", "country_code": "AE"},
-        {"name": "南アフリカ", "ticker": "^JALSH", "country_code": "ZA"},
-        {"name": "サウジアラビア", "ticker": "^TASI.SR", "country_code": "SA"},
+        {"name": "トルコ Borsa100", "ticker": "XU100.IS", "country_code": "TR", "description": "BIST 100"},
+        {"name": "ドバイ UAE", "ticker": "DFMGI.AE", "country_code": "AE", "description": "DFM General Index"},
+        {"name": "南アフリカ", "ticker": "^JALSH", "country_code": "ZA", "description": "FTSE/JSE All Share"},
+        {"name": "サウジアラビア", "ticker": "^TASI.SR", "country_code": "SA", "description": "Tadawul All Share Index"},
     ],
 }
 
@@ -194,12 +194,43 @@ class MarketDataFetcher:
             return None
         return obj
 
+    def _generate_svg_chart_data(self, history_df):
+        if history_df.empty or 'Close' not in history_df.columns:
+            return "", 0, 0
+
+        prices = history_df['Close'].dropna().tolist()
+        if not prices:
+            return "", 0, 0
+
+        min_price = min(prices)
+        max_price = max(prices)
+        price_range = max_price - min_price
+
+        num_points = len(prices)
+        svg_points = []
+
+        for i, price in enumerate(prices):
+            x = (i / (num_points - 1)) * 85 if num_points > 1 else 42.5
+
+            if price_range == 0:
+                y = 50
+            else:
+                normalized_y = (price - min_price) / price_range
+                y = 97 - (normalized_y * 94)
+
+            svg_points.append(f"{x:.2f},{y:.2f}")
+
+        return " ".join(svg_points), min_price, max_price
+
     def fetch_world_indices_data(self):
         """Fetches data for world indices for the new 'World' tab, organized by category."""
         logger.info("Fetching world indices data...")
         world_data = {}
         gold_usd_price = None
         usdjpy_price = None
+        gold_svg_chart_data = ""
+        gold_min_val = 0
+        gold_max_val = 0
 
         for category, indices in WORLD_INDICES.items():
             category_data = []
@@ -212,42 +243,47 @@ class MarketDataFetcher:
 
                 try:
                     ticker = yf.Ticker(ticker_symbol, session=self.yf_session)
-                    hist_5d = ticker.history(period="7d", interval="1h")
+                    # Fetch more data points for a smoother chart
+                    hist_data = ticker.history(period="5d", interval="1h")
 
-                    if hist_5d.empty:
+                    if hist_data.empty or len(hist_data['Close'].dropna()) < 2:
                         logger.warning(f"No 5d history for {name} ({ticker_symbol}), using daily.")
-                        hist_daily = ticker.history(period="3mo", interval="1d")
-                        if hist_daily.empty:
-                             logger.error(f"No data at all for {name} ({ticker_symbol}), skipping.")
+                        hist_data = ticker.history(period="3mo", interval="1d")
+                        if hist_data.empty or len(hist_data['Close'].dropna()) < 2:
+                             logger.error(f"Not enough data for {name} ({ticker_symbol}), skipping.")
                              continue
-                        current_price = hist_daily['Close'].iloc[-1]
-                        prev_close = hist_daily['Close'].iloc[-2]
-                        chart_data = [{"time": index.strftime('%Y-%m-%dT%H:%M:%S'), "value": row['Close']} for index, row in hist_daily.iterrows()]
-                    else:
-                        current_price = hist_5d['Close'].iloc[-1]
-                        hist_daily = ticker.history(period="2d", interval="1d")
-                        if len(hist_daily) < 2:
-                            prev_close = hist_5d.iloc[0]['Open']
-                        else:
-                            prev_close = hist_daily['Close'].iloc[-2]
-                        chart_data = [{"time": index.strftime('%Y-%m-%dT%H:%M:%S'), "value": row['Close']} for index, row in hist_5d.tail(48).iterrows()]
 
-
+                    # Data processing
+                    close_prices = hist_data['Close'].dropna()
+                    current_price = close_prices.iloc[-1]
+                    prev_close = close_prices.iloc[-2]
                     change = current_price - prev_close
                     percent_change = (change / prev_close) * 100 if prev_close != 0 else 0
 
+                    # Generate SVG chart data
+                    svg_chart_data, min_val, max_val = self._generate_svg_chart_data(hist_data)
 
-                    if ticker_symbol == "GC=F": gold_usd_price = current_price
-                    if ticker_symbol == "JPY=X": usdjpy_price = current_price
+                    if ticker_symbol == "GC=F":
+                        gold_usd_price = current_price
+                        gold_svg_chart_data = svg_chart_data
+                        gold_min_val = min_val
+                        gold_max_val = max_val
+
+                    if ticker_symbol == "JPY=X":
+                        usdjpy_price = current_price
 
                     category_data.append({
                         "name": name,
                         "ticker": ticker_symbol,
                         "country_code": index_info["country_code"],
-                        "current_price": round(current_price, 2),
-                        "change": round(change, 2),
-                        "percent_change": round(percent_change, 2),
-                        "chart_data": chart_data
+                        "volatilityIndex": index_info.get("description", ""),
+                        "currentValue": f"{current_price:,.2f}",
+                        "changeValue": f"{abs(change):,.2f}",
+                        "percentage": f"{abs(percent_change):.2f}",
+                        "isPositive": bool(change >= 0),
+                        "chartData": svg_chart_data,
+                        "maxValue": f"{max_val:,.0f}",
+                        "minValue": f"{min_val:,.0f}"
                     })
                     time.sleep(0.5)
 
@@ -266,25 +302,31 @@ class MarketDataFetcher:
             logger.info("Calculating Gold (JPY) price...")
             try:
                 gold_jpy_per_gram = (gold_usd_price * usdjpy_price) / 31.1035
-                gold_hist = yf.Ticker("GC=F", session=self.yf_session).history(period="2d")
-                jpy_hist = yf.Ticker("JPY=X", session=self.yf_session).history(period="2d")
+
+                # Use historical data of components to estimate previous price
+                gold_hist = yf.Ticker("GC=F", session=self.yf_session).history(period="2d", interval="1d")['Close']
+                jpy_hist = yf.Ticker("JPY=X", session=self.yf_session).history(period="2d", interval="1d")['Close']
 
                 if len(gold_hist) > 1 and len(jpy_hist) > 1:
-                    prev_gold_usd = gold_hist['Close'].iloc[-2]
-                    prev_jpy_usd = jpy_hist['Close'].iloc[-2]
+                    prev_gold_usd = gold_hist.iloc[-2]
+                    prev_jpy_usd = jpy_hist.iloc[-2]
                     prev_gold_jpy_per_gram = (prev_gold_usd * prev_jpy_usd) / 31.1035
+
                     change = gold_jpy_per_gram - prev_gold_jpy_per_gram
                     percent_change = (change / prev_gold_jpy_per_gram) * 100 if prev_gold_jpy_per_gram != 0 else 0
-                    gold_usd_chart_data = next((item['chart_data'] for item in world_data.get("コモディティ", []) if item['ticker'] == 'GC=F'), [])
 
                     world_data["コモディティ"].insert(1, {
                         "name": "ゴールド(円)",
                         "ticker": "GOLD-JPY",
                         "country_code": "CM",
-                        "current_price": round(gold_jpy_per_gram, 2),
-                        "change": round(change, 2),
-                        "percent_change": round(percent_change, 2),
-                        "chart_data": gold_usd_chart_data
+                        "volatilityIndex": "金 (円換算)",
+                        "currentValue": f"{gold_jpy_per_gram:,.0f}",
+                        "changeValue": f"{abs(change):,.0f}",
+                        "percentage": f"{abs(percent_change):.2f}",
+                        "isPositive": bool(change >= 0),
+                        "chartData": gold_svg_chart_data,
+                        "maxValue": f"{gold_max_val * usdjpy_price / 31.1035:,.0f}",
+                        "minValue": f"{gold_min_val * usdjpy_price / 31.1035:,.0f}"
                     })
                 else:
                     logger.warning("Not enough historical data to calculate Gold (JPY) change.")
@@ -294,14 +336,10 @@ class MarketDataFetcher:
         self.data['world'] = world_data
         logger.info(f"Fetched data for world indices.")
 
-    # --- Other methods from the original file should be here ---
-    # ... (omitted for brevity, assuming they are unchanged)
-
     def fetch_all_data(self):
         os.makedirs(DATA_DIR, exist_ok=True)
         logger.info("--- Starting Raw Data Fetch ---")
         self.fetch_world_indices_data()
-        # ... (rest of the fetch calls)
         with open(RAW_DATA_PATH, 'w', encoding='utf-8') as f:
             json.dump(self.data, f, indent=2, ensure_ascii=False)
         logger.info(f"--- Raw Data Fetch Completed. Saved to {RAW_DATA_PATH} ---")
@@ -313,9 +351,6 @@ class MarketDataFetcher:
            self.fetch_all_data() # Fetch if raw data doesn't exist
         with open(RAW_DATA_PATH, 'r', encoding='utf-8') as f:
             self.data = json.load(f)
-
-        # AI Generation Steps
-        # ... (AI generation calls)
 
         jst = timezone(timedelta(hours=9))
         self.data['date'] = datetime.now(jst).strftime('%Y-%m-%d')
