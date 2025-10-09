@@ -90,7 +90,6 @@ WORLD_INDICES = {
         {"name": "フランス CAC40", "ticker": "^FCHI", "country_code": "FR", "description": "CAC40指数"},
         {"name": "イタリア MIB", "ticker": "FTSEMIB.MI", "country_code": "IT", "description": "FTSE MIB指数"},
         {"name": "スイス SMI", "ticker": "^SSMI", "country_code": "CH", "description": "SMI指数"},
-        {"name": "ロシア MOEX", "ticker": "IMOEX.ME", "country_code": "RU", "description": "MOEX Russia Index"},
     ],
     "ピックアップ": [
         {"name": "FANG+", "ticker": "^NYFANG", "country_code": "US", "description": "NYSE FANG+ Index"},
@@ -117,7 +116,6 @@ WORLD_INDICES = {
     "中東･アフリカ": [
         {"name": "トルコ Borsa100", "ticker": "XU100.IS", "country_code": "TR", "description": "BIST 100"},
         {"name": "ドバイ UAE", "ticker": "DFMGI.AE", "country_code": "AE", "description": "DFM General Index"},
-        {"name": "南アフリカ", "ticker": "J203.L", "country_code": "ZA", "description": "FTSE/JSE All Share"},
         {"name": "サウジアラビア", "ticker": "^TASI.SR", "country_code": "SA", "description": "Tadawul All Share Index"},
     ],
 }
