@@ -422,6 +422,89 @@ document.addEventListener('DOMContentLoaded', () => {
         card.innerHTML = `<div class="ai-commentary"><div class="ai-header"><h3>AI解説</h3>${dateHtml}</div><p>${commentary.replace(/\n/g, '<br>')}</p></div>`;
         container.appendChild(card);
     }
+    function renderWorldTab(container, worldData) {
+        if (!container || !worldData || Object.keys(worldData).length === 0) {
+            if (container) container.innerHTML = '<div class="card"><p>World index data is not available.</p></div>';
+            return;
+        }
+        container.innerHTML = ''; // Clear previous content
+
+        const flagBaseUrl = 'https://flagcdn.com/w40/';
+        const countryFlagMap = {
+            JP: `${flagBaseUrl}jp.png`, US: `${flagBaseUrl}us.png`, DE: `${flagBaseUrl}de.png`,
+            FR: `${flagBaseUrl}fr.png`, GB: `${flagBaseUrl}gb.png`, HK: `${flagBaseUrl}hk.png`,
+            CN: `${flagBaseUrl}cn.png`, KR: `${flagBaseUrl}kr.png`, TW: `${flagBaseUrl}tw.png`,
+            FX: 'icons/currency.png', CM: 'icons/commodity.png'
+        };
+
+        for (const category in worldData) {
+            const indices = worldData[category];
+            if (indices.length === 0) continue;
+
+            const categoryHeader = document.createElement('h3');
+            categoryHeader.className = 'world-category-header';
+            categoryHeader.textContent = category;
+            container.appendChild(categoryHeader);
+
+            const grid = document.createElement('div');
+            grid.className = 'world-grid';
+            container.appendChild(grid);
+
+            indices.forEach(index => {
+                const card = document.createElement('div');
+                card.className = 'world-card-new'; // Use a new class for the new design
+
+                if (index.error) {
+                    card.classList.add('error');
+                    card.innerHTML = `<p><strong>${index.name}</strong><br>データ取得失敗</p>`;
+                    grid.appendChild(card);
+                    return;
+                }
+
+                const isPositive = index.isPositive;
+                const perfClass = isPositive ? 'positive' : 'negative';
+                const changeSign = isPositive ? '+' : '';
+
+                // Use the keys from the backend directly, as they are pre-formatted strings
+                const formattedPrice = index.currentValue || 'N/A';
+                const formattedChange = index.changeValue || 'N/A';
+                const formattedPercentChange = index.percentage || 'N/A';
+
+                card.innerHTML = `
+                    <div class="world-card-new-header">
+                        <img src="${countryFlagMap[index.country_code] || 'icons/default.png'}" alt="${index.country_code}" class="flag-icon" onerror="this.style.display='none'">
+                        <span class="index-name">${index.name}</span>
+                        <span class="volatility-index">${index.volatilityIndex || ''}</span>
+                    </div>
+                    <div class="world-card-new-body">
+                        <div class="chart-container-new">
+                            <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+                                <line x1="0" y1="0"   x2="300" y2="0"   class="grid-line"></line>
+                                <line x1="0" y1="25"  x2="300" y2="25"  class="grid-line dashed"></line>
+                                <line x1="0" y1="50"  x2="300" y2="50"  class="grid-line"></line>
+                                <line x1="0" y1="75"  x2="300" y2="75"  class="grid-line dashed"></line>
+                                <line x1="0" y1="100" x2="300" y2="100" class="grid-line"></line>
+                                <polyline points="${index.chartData || ''}" class="chart-line ${perfClass}" fill="none" stroke-width="2"></polyline>
+                            </svg>
+                            <div class="chart-labels">
+                                <span class="max-value">${index.maxValue || ''}</span>
+                                <span class="min-value">${index.minValue || ''}</span>
+                            </div>
+                        </div>
+                        <div class="price-info">
+                            <div class="current-price">${formattedPrice}</div>
+                            <div class="price-change ${perfClass}">
+                                <span>${changeSign}${formattedChange}</span>
+                                <span class="percent-change">(${changeSign}${formattedPercentChange}%)</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+    }
+
     function renderAllData(data) {
         console.log("Rendering all data:", data);
         const lastUpdatedEl = document.getElementById('last-updated');
@@ -438,6 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderHeatmapCommentary(document.getElementById('sp500-commentary'), data.sp500_heatmap?.ai_commentary, data.last_updated);
         renderIndicators(document.getElementById('indicators-content'), data.indicators, data.last_updated);
         renderColumn(document.getElementById('column-content'), data.column);
+        renderWorldTab(document.getElementById('world-content'), data.world);
     }
 
     // --- Swipe Navigation ---
