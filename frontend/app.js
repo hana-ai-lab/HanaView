@@ -427,13 +427,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (container) container.innerHTML = '<div class="card"><p>World index data is not available.</p></div>';
             return;
         }
-        container.innerHTML = ''; // Clear previous content
+        container.innerHTML = '';
 
         const flagBaseUrl = 'https://flagcdn.com/w40/';
         const countryFlagMap = {
             JP: `${flagBaseUrl}jp.png`, US: `${flagBaseUrl}us.png`, DE: `${flagBaseUrl}de.png`,
             FR: `${flagBaseUrl}fr.png`, GB: `${flagBaseUrl}gb.png`, HK: `${flagBaseUrl}hk.png`,
             CN: `${flagBaseUrl}cn.png`, KR: `${flagBaseUrl}kr.png`, TW: `${flagBaseUrl}tw.png`,
+            IT: `${flagBaseUrl}it.png`, CH: `${flagBaseUrl}ch.png`, IN: `${flagBaseUrl}in.png`,
+            MY: `${flagBaseUrl}my.png`, TH: `${flagBaseUrl}th.png`, VN: `${flagBaseUrl}vn.png`,
+            SG: `${flagBaseUrl}sg.png`, ID: `${flagBaseUrl}id.png`, AU: `${flagBaseUrl}au.png`,
+            NZ: `${flagBaseUrl}nz.png`, CA: `${flagBaseUrl}ca.png`, MX: `${flagBaseUrl}mx.png`,
+            AR: `${flagBaseUrl}ar.png`, BR: `${flagBaseUrl}br.png`, TR: `${flagBaseUrl}tr.png`,
+            AE: `${flagBaseUrl}ae.png`, SA: `${flagBaseUrl}sa.png`,
             FX: 'icons/currency.png', CM: 'icons/commodity.png'
         };
 
@@ -452,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             indices.forEach(index => {
                 const card = document.createElement('div');
-                card.className = 'world-card-new'; // Use a new class for the new design
+                card.className = 'world-card-new';
 
                 if (index.error) {
                     card.classList.add('error');
@@ -463,40 +469,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const isPositive = index.isPositive;
                 const perfClass = isPositive ? 'positive' : 'negative';
-                const changeSign = isPositive ? '+' : '';
+                const changeSign = isPositive ? '+' : '-';
+                const cleanPercentage = String(index.percentage).replace(/^[+-]/, '');
+                const cleanChangeValue = String(index.changeValue).replace(/^[+-]/, '');
 
-                // Use the keys from the backend directly, as they are pre-formatted strings
-                const formattedPrice = index.currentValue || 'N/A';
-                const formattedChange = index.changeValue || 'N/A';
-                const formattedPercentChange = index.percentage || 'N/A';
+                const chartPoints = (index.chartData || '').split(' ').map(p => {
+                    const [x, y] = p.split(',').map(Number);
+                    return { x, y };
+                });
+                const yValues = chartPoints.map(p => p.y);
+                const minY = Math.min(...yValues);
+                const maxY = Math.max(...yValues);
+
+                let areaFillPath = '';
+                if(chartPoints.length > 1) {
+                    const firstPoint = chartPoints[0];
+                    const lastPoint = chartPoints[chartPoints.length - 1];
+                    areaFillPath = `M${firstPoint.x},50 L${chartPoints.map(p => `${p.x},${p.y}`).join(' ')} L${lastPoint.x},50 Z`;
+                }
 
                 card.innerHTML = `
                     <div class="world-card-new-header">
-                        <img src="${countryFlagMap[index.country_code] || 'icons/default.png'}" alt="${index.country_code}" class="flag-icon" onerror="this.style.display='none'">
+                        <img src="${countryFlagMap[index.country_code] || 'icons/default.png'}" alt="${index.country_code}" class="flag-icon" onerror="this.src='icons/default.png';">
                         <span class="index-name">${index.name}</span>
                         <span class="volatility-index">${index.volatilityIndex || ''}</span>
                     </div>
-                    <div class="world-card-new-body">
-                        <div class="chart-container-new">
-                            <svg viewBox="0 0 300 100" preserveAspectRatio="none">
-                                <line x1="0" y1="0"   x2="300" y2="0"   class="grid-line"></line>
-                                <line x1="0" y1="25"  x2="300" y2="25"  class="grid-line dashed"></line>
-                                <line x1="0" y1="50"  x2="300" y2="50"  class="grid-line"></line>
-                                <line x1="0" y1="75"  x2="300" y2="75"  class="grid-line dashed"></line>
-                                <line x1="0" y1="100" x2="300" y2="100" class="grid-line"></line>
-                                <polyline points="${index.chartData || ''}" class="chart-line ${perfClass}" fill="none" stroke-width="2"></polyline>
-                            </svg>
-                            <div class="chart-labels">
-                                <span class="max-value">${index.maxValue || ''}</span>
-                                <span class="min-value">${index.minValue || ''}</span>
-                            </div>
+                    <div class="price-info" style="margin-bottom: 0.5rem;">
+                         <div class="text-3xl font-bold ${perfClass}">
+                            ${changeSign}${cleanPercentage}%
                         </div>
-                        <div class="price-info">
-                            <div class="current-price">${formattedPrice}</div>
-                            <div class="price-change ${perfClass}">
-                                <span>${changeSign}${formattedChange}</span>
-                                <span class="percent-change">(${changeSign}${formattedPercentChange}%)</span>
-                            </div>
+                    </div>
+                    <div class="chart-container-new" style="height: 5rem;">
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="overflow: visible;">
+                            <line x1="0" y1="50" x2="100" y2="50" class="grid-line zero"></line>
+                            <path d="${areaFillPath}" class="area-fill ${perfClass}"></path>
+                            <polyline points="${index.chartData || ''}" class="chart-line"></polyline>
+                        </svg>
+                         <div class="chart-labels" style="top: ${minY-10}%; bottom: ${100-maxY-10}%;">
+                            <div style="position:absolute; top:0; right:0; background: rgba(229, 231, 235, 0.7); padding: 1px 4px; border-radius: 4px;">${index.maxValue || ''}</div>
+                            <div style="position:absolute; bottom:0; right:0; background: rgba(229, 231, 235, 0.7); padding: 1px 4px; border-radius: 4px;">${index.minValue || ''}</div>
+                        </div>
+                    </div>
+                     <div class="price-info" style="margin-top: 1rem;">
+                        <div class="current-price">${index.currentValue || 'N/A'}</div>
+                        <div class="price-change ${perfClass}">
+                            <span>${changeSign}${cleanChangeValue}</span>
                         </div>
                     </div>
                 `;
