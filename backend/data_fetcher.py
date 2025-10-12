@@ -43,83 +43,6 @@ MONEX_JP_EARNINGS_URL = "https://mst.monex.co.jp/mst/servlet/ITS/fi/FIClosingCal
 VIX_TICKER = "^VIX"
 T_NOTE_TICKER = "^TNX"
 
-WORLD_INDICES = {
-    "日本": [
-        {"name": "日経平均", "ticker": "^N225", "country_code": "JP", "description": "東証 日経225平均"},
-        {"name": "日経時間外", "ticker": "NIY=F", "country_code": "JP", "description": "Nikkei/Yen Futures"},
-    ],
-    "米国": [
-        {"name": "ダウ", "ticker": "^DJI", "country_code": "US", "description": "ダウ30"},
-        {"name": "ナスダック", "ticker": "^IXIC", "country_code": "US", "description": "ナスダック総合"},
-        {"name": "S&P500", "ticker": "^GSPC", "country_code": "US", "description": "S&P500"},
-        {"name": "SOX指数", "ticker": "^SOX", "country_code": "US", "description": "フィラデルフィア半導体指数"},
-        {"name": "VIX", "ticker": "^VIX", "country_code": "US", "description": "VIX恐怖指数"},
-        {"name": "ラッセル2000", "ticker": "^RUT", "country_code": "US", "description": "ラッセル2000"},
-    ],
-    "債券": [
-        {"name": "米国債10年", "ticker": "^TNX", "country_code": "US", "description": "10年債利回り"},
-    ],
-    "為替": [
-        {"name": "ドル円", "ticker": "JPY=X", "country_code": "FX", "description": "USD/JPY"},
-        {"name": "ユーロ円", "ticker": "EURJPY=X", "country_code": "FX", "description": "EUR/JPY"},
-        {"name": "ポンド円", "ticker": "GBPJPY=X", "country_code": "FX", "description": "GBP/JPY"},
-        {"name": "豪ドル円", "ticker": "AUDJPY=X", "country_code": "FX", "description": "AUD/JPY"},
-        {"name": "カナダドル円", "ticker": "CADJPY=X", "country_code": "FX", "description": "CAD/JPY"},
-        {"name": "スイスフラン円", "ticker": "CHFJPY=X", "country_code": "FX", "description": "CHF/JPY"},
-    ],
-    "コモディティ": [
-        {"name": "ゴールド", "ticker": "GC=F", "country_code": "CM", "description": "金先物 (USD)"},
-        {"name": "ゴールド(円)", "ticker": "GOLD-JPY", "country_code": "CM", "description": "金 (円換算)", "calculated": True},
-        {"name": "WTI原油", "ticker": "CL=F", "country_code": "CM", "description": "原油先物"},
-        {"name": "北海ブレント", "ticker": "BZ=F", "country_code": "CM", "description": "ブレント原油先物"},
-        {"name": "天然ガス", "ticker": "NG=F", "country_code": "CM", "description": "天然ガス先物"},
-        {"name": "銅", "ticker": "HG=F", "country_code": "CM", "description": "銅先物"},
-        {"name": "ビットコイン", "ticker": "BTC-USD", "country_code": "CM", "description": "Bitcoin"},
-        {"name": "イーサリアム", "ticker": "ETH-USD", "country_code": "CM", "description": "Ethereum"},
-    ],
-    "北東アジア": [
-        {"name": "上海総合", "ticker": "000001.SS", "country_code": "CN", "description": "上海総合指数"},
-        {"name": "CSI300", "ticker": "000300.SS", "country_code": "CN", "description": "CSI300指数"},
-        {"name": "韓国 KOSPI", "ticker": "^KS11", "country_code": "KR", "description": "韓国総合株価指数"},
-        {"name": "香港 ハンセン", "ticker": "^HSI", "country_code": "HK", "description": "香港ハンセン指数"},
-        {"name": "台湾 加権", "ticker": "^TWII", "country_code": "TW", "description": "台湾加権指数"},
-    ],
-    "欧州": [
-        {"name": "イギリス FTSE", "ticker": "^FTSE", "country_code": "GB", "description": "FTSE100指数"},
-        {"name": "ドイツ DAX", "ticker": "^GDAXI", "country_code": "DE", "description": "DAX指数"},
-        {"name": "フランス CAC40", "ticker": "^FCHI", "country_code": "FR", "description": "CAC40指数"},
-        {"name": "イタリア MIB", "ticker": "FTSEMIB.MI", "country_code": "IT", "description": "FTSE MIB指数"},
-        {"name": "スイス SMI", "ticker": "^SSMI", "country_code": "CH", "description": "SMI指数"},
-    ],
-    "ピックアップ": [
-        {"name": "FANG+", "ticker": "^NYFANG", "country_code": "US", "description": "NYSE FANG+ Index"},
-        {"name": "全世界株式 オルカン", "ticker": "ACWI", "country_code": "US", "description": "MSCI ACWI"},
-    ],
-    "新興アジア": [
-        {"name": "インド Nifty", "ticker": "^NSEI", "country_code": "IN", "description": "NIFTY 50"},
-        {"name": "マレーシア KLCI", "ticker": "^KLSE", "country_code": "MY", "description": "FTSE Bursa Malaysia KLCI"},
-        {"name": "タイ SET指数", "ticker": "^SET.BK", "country_code": "TH", "description": "SET Index"},
-        {"name": "ベトナム", "ticker": "^VNINDEX.VN", "country_code": "VN", "description": "VN-Index"},
-        {"name": "シンガポールSTI", "ticker": "^STI", "country_code": "SG", "description": "Straits Times Index"},
-        {"name": "インドネシアJKSE", "ticker": "^JKSE", "country_code": "ID", "description": "Jakarta Composite Index"},
-    ],
-    "オセアニア": [
-        {"name": "オーストラリアASX", "ticker": "^AXJO", "country_code": "AU", "description": "S&P/ASX 200"},
-        {"name": "ニュージーランド", "ticker": "^NZ50", "country_code": "NZ", "description": "S&P/NZX 50"},
-    ],
-    "アメリカ大陸": [
-        {"name": "カナダS&Pトロント総合", "ticker": "^GSPTSE", "country_code": "CA", "description": "S&P/TSX Composite"},
-        {"name": "メキシコIPC", "ticker": "^MXX", "country_code": "MX", "description": "S&P/BMV IPC"},
-        {"name": "アルゼンチン メンバル", "ticker": "^MERV", "country_code": "AR", "description": "S&P Merval"},
-        {"name": "ブラジル ボベスパ", "ticker": "^BVSP", "country_code": "BR", "description": "IBOVESPA"},
-    ],
-    "中東･アフリカ": [
-        {"name": "トルコ Borsa100", "ticker": "XU100.IS", "country_code": "TR", "description": "BIST 100"},
-        {"name": "ドバイ UAE", "ticker": "DFMGI.AE", "country_code": "AE", "description": "DFM General Index"},
-        {"name": "サウジアラビア", "ticker": "^TASI.SR", "country_code": "SA", "description": "Tadawul All Share Index"},
-    ],
-}
-
 # Country to Emoji Mapping
 COUNTRY_EMOJI_MAP = {
     "jpn": "🇯🇵",
@@ -143,31 +66,31 @@ COUNTRY_EMOJI_MAP = {
 }
 
 # Important tickers from originalcalendar.py
-US_TICKER_LIST = ["AAPL", "NVDA", "MSFT", "GOOG", "META", "AMZN", "NFLX", "BRK-B", "TSLA", "AVGO",
-                  "LLY", "WMT", "JPM", "V", "UNH", "XOM", "ORCL", "MA", "HD", "PG", "COST", "JNJ",
-                  "ABBV", "TMUS", "BAC", "CRM", "KO", "CVX", "VZ", "MRK", "AMD", "PEP", "CSCO",
-                  "LIN", "ACN", "WFC", "TMO", "ADBE", "MCD", "ABT", "BX", "PM", "NOW", "IBM", "AXP",
-                  "MS", "TXN", "GE", "QCOM", "CAT", "ISRG", "DHR", "INTU", "DIS", "CMCSA", "AMGN",
-                  "T", "GS", "PFE", "NEE", "CHTR", "RTX", "BKNG", "UBER", "AMAT", "SPGI", "LOW",
-                  "BLK", "PGR", "UNP", "SYK", "HON", "ETN", "SCHW", "LMT", "TJX", "COP", "ANET",
-                  "BSX", "KKR", "VRTX", "C", "PANW", "ADP", "NKE", "BA", "MDT", "FI", "UPS", "SBUX",
-                  "ADI", "CB", "GILD", "MU", "BMY", "DE", "PLD", "MMC", "INTC", "AMT", "SO", "LRCX",
+US_TICKER_LIST = ["AAPL", "NVDA", "MSFT", "GOOG", "META", "AMZN", "NFLX", "BRK-B", "TSLA", "AVGO", 
+                  "LLY", "WMT", "JPM", "V", "UNH", "XOM", "ORCL", "MA", "HD", "PG", "COST", "JNJ", 
+                  "ABBV", "TMUS", "BAC", "CRM", "KO", "CVX", "VZ", "MRK", "AMD", "PEP", "CSCO", 
+                  "LIN", "ACN", "WFC", "TMO", "ADBE", "MCD", "ABT", "BX", "PM", "NOW", "IBM", "AXP", 
+                  "MS", "TXN", "GE", "QCOM", "CAT", "ISRG", "DHR", "INTU", "DIS", "CMCSA", "AMGN", 
+                  "T", "GS", "PFE", "NEE", "CHTR", "RTX", "BKNG", "UBER", "AMAT", "SPGI", "LOW", 
+                  "BLK", "PGR", "UNP", "SYK", "HON", "ETN", "SCHW", "LMT", "TJX", "COP", "ANET", 
+                  "BSX", "KKR", "VRTX", "C", "PANW", "ADP", "NKE", "BA", "MDT", "FI", "UPS", "SBUX", 
+                  "ADI", "CB", "GILD", "MU", "BMY", "DE", "PLD", "MMC", "INTC", "AMT", "SO", "LRCX", 
                   "ELV", "DELL", "PLTR", "REGN", "MDLZ", "MO", "HCA", "SHW", "KLAC", "ICE", "CI", "ABNB"]
 
-JP_TICKER_LIST = ["7203", "8306", "6501", "6861", "6758", "9983", "6098", "9984", "8316", "9432",
-                  "4519", "4063", "8058", "8001", "8766", "8035", "9433", "8031", "7974", "4568",
-                  "9434", "8411", "2914", "7267", "7741", "7011", "4502", "6857", "6902", "4661",
-                  "6503", "3382", "6367", "8725", "4578", "6702", "6981", "6146", "7751", "6178",
-                  "4543", "4901", "6273", "8053", "8002", "6954", "5108", "8591", "6301", "8801",
-                  "6723", "8750", "6762", "6594", "9020", "6701", "9613", "4503", "8267", "8630",
-                  "6752", "6201", "9022", "7733", "4452", "4689", "2802", "5401", "1925", "7269",
-                  "8802", "8113", "2502", "8015", "4612", "4307", "1605", "8309", "8308", "1928",
-                  "8604", "9101", "6326", "4684", "7532", "9735", "8830", "9503", "5020", "3659",
-                  "9843", "6971", "7832", "4091", "7309", "4755", "9104", "4716", "7936", "9766",
-                  "4507", "8697", "5802", "2503", "7270", "6920", "6869", "6988", "2801", "2587",
-                  "3407", "5803", "7201", "8593", "9531", "4523", "9107", "7202", "3092", "8601",
-                  "5019", "9202", "9435", "1802", "4768", "7911", "4151", "9502", "6586", "7701",
-                  "3402", "7272", "9532", "9697", "4911", "9021", "8795", "3064", "7259", "1812",
+JP_TICKER_LIST = ["7203", "8306", "6501", "6861", "6758", "9983", "6098", "9984", "8316", "9432", 
+                  "4519", "4063", "8058", "8001", "8766", "8035", "9433", "8031", "7974", "4568", 
+                  "9434", "8411", "2914", "7267", "7741", "7011", "4502", "6857", "6902", "4661", 
+                  "6503", "3382", "6367", "8725", "4578", "6702", "6981", "6146", "7751", "6178", 
+                  "4543", "4901", "6273", "8053", "8002", "6954", "5108", "8591", "6301", "8801", 
+                  "6723", "8750", "6762", "6594", "9020", "6701", "9613", "4503", "8267", "8630", 
+                  "6752", "6201", "9022", "7733", "4452", "4689", "2802", "5401", "1925", "7269", 
+                  "8802", "8113", "2502", "8015", "4612", "4307", "1605", "8309", "8308", "1928", 
+                  "8604", "9101", "6326", "4684", "7532", "9735", "8830", "9503", "5020", "3659", 
+                  "9843", "6971", "7832", "4091", "7309", "4755", "9104", "4716", "7936", "9766", 
+                  "4507", "8697", "5802", "2503", "7270", "6920", "6869", "6988", "2801", "2587", 
+                  "3407", "5803", "7201", "8593", "9531", "4523", "9107", "7202", "3092", "8601", 
+                  "5019", "9202", "9435", "1802", "4768", "7911", "4151", "9502", "6586", "7701", 
+                  "3402", "7272", "9532", "9697", "4911", "9021", "8795", "3064", "7259", "1812", 
                   "2897", "7912", "4324", "6504", "7013", "7550", "6645", "5713", "5411", "4188"]
 
 # --- Error Handling ---
@@ -215,7 +138,7 @@ class MarketDataFetcher:
         self.http_session = Session(impersonate="chrome110", headers={'Accept-Language': 'en-US,en;q=0.9'})
         # yfinance用のセッションも別途作成
         self.yf_session = Session(impersonate="safari15_5")
-        self.data = {"market": {}, "news": [], "indicators": {"economic": [], "us_earnings": [], "jp_earnings": []}, "world": {}}
+        self.data = {"market": {}, "news": [], "indicators": {"economic": [], "us_earnings": [], "jp_earnings": []}}
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
             logger.warning(f"[E001] {ERROR_CODES['E001']} AI functions will be skipped.")
@@ -244,34 +167,6 @@ class MarketDataFetcher:
         except Exception as e:
             logger.warning(f"Could not parse URL for favicon: {url} - {e}")
             return None
-
-    def _generate_svg_chart_data(self, history_df):
-        if history_df.empty or 'Close' not in history_df.columns:
-            return "", 0, 0
-
-        prices = history_df['Close'].dropna().tolist()
-        if not prices:
-            return "", 0, 0
-
-        min_price = min(prices)
-        max_price = max(prices)
-        price_range = max_price - min_price
-
-        num_points = len(prices)
-        svg_points = []
-
-        for i, price in enumerate(prices):
-            x = (i / (num_points - 1)) * 85 if num_points > 1 else 42.5
-
-            if price_range == 0:
-                y = 50
-            else:
-                normalized_y = (price - min_price) / price_range
-                y = 97 - (normalized_y * 94)
-
-            svg_points.append(f"{x:.2f},{y:.2f}")
-
-        return " ".join(svg_points), min_price, max_price
 
     # --- Ticker List Fetching ---
     def _get_sp500_tickers(self):
@@ -405,7 +300,7 @@ class MarketDataFetcher:
     def fetch_calendar_data(self):
         """Fetch economic indicators and earnings calendar."""
         dt_now = datetime.now()
-
+        
         # Fetch economic indicators
         self._fetch_economic_indicators(dt_now)
 
@@ -414,10 +309,10 @@ class MarketDataFetcher:
         try:
             # Fetch US earnings
             self._fetch_us_earnings(dt_now)
-
+            
             # Fetch JP earnings
             self._fetch_jp_earnings(dt_now)
-
+            
         except Exception as e:
             logger.error(f"Error during earnings data fetching: {e}")
             if 'error' not in self.data['indicators']:
@@ -512,7 +407,7 @@ class MarketDataFetcher:
                 except (ValueError, IndexError) as e:
                     logger.debug(f"Skipping row in economic indicators: {row.text.strip()} due to {e}")
                     continue
-
+            
             self.data['indicators']['economic'] = indicators
             logger.info(f"Fetched {len(indicators)} economic indicators successfully.")
 
@@ -528,7 +423,7 @@ class MarketDataFetcher:
             response.raise_for_status()
             html_content = response.content.decode('shift_jis', errors='replace')
             tables = pd.read_html(StringIO(html_content), flavor='lxml')
-
+            
             jst = timezone(timedelta(hours=9))
             dt_now_jst = dt_now.astimezone(jst)
 
@@ -564,7 +459,7 @@ class MarketDataFetcher:
                                 earnings.append({"datetime": tdatetime_aware_jst.strftime('%m/%d %H:%M'), "ticker": ticker, "company": f"({company_name})" if company_name else "", "type": "us_earnings"})
                     except Exception as e:
                         logger.debug(f"Skipping row {i} in US earnings: {e}")
-
+            
             self.data['indicators']['us_earnings'] = earnings
             logger.info(f"Fetched {len(earnings)} US earnings")
         except Exception as e:
@@ -1571,120 +1466,6 @@ class MarketDataFetcher:
         except Exception as e:
             logger.error(f"Error during data cleanup: {e}")
 
-    def fetch_world_indices_data(self):
-        """Fetches data for world indices for the new 'World' tab, organized by category."""
-        logger.info("Fetching world indices data...")
-        world_data = {}
-        gold_usd_price = None
-        usdjpy_price = None
-        gold_svg_chart_data = ""
-        gold_min_val = 0
-        gold_max_val = 0
-
-        for category, indices in WORLD_INDICES.items():
-            category_data = []
-            for index_info in indices:
-                name = index_info["name"]
-                ticker_symbol = index_info["ticker"]
-
-                if index_info.get("calculated"):
-                    continue
-
-                try:
-                    ticker = yf.Ticker(ticker_symbol, session=self.yf_session)
-                    # Fetch more data points for a smoother chart
-                    hist_data = ticker.history(period="5d", interval="1h")
-
-                    if hist_data.empty or len(hist_data['Close'].dropna()) < 2:
-                        logger.warning(f"No 5d history for {name} ({ticker_symbol}), using daily.")
-                        hist_data = ticker.history(period="3mo", interval="1d")
-                        if hist_data.empty or len(hist_data['Close'].dropna()) < 2:
-                             logger.error(f"Not enough data for {name} ({ticker_symbol}), skipping.")
-                             continue
-
-                    # Data processing
-                    close_prices = hist_data['Close'].dropna()
-                    current_price = close_prices.iloc[-1]
-                    prev_close = close_prices.iloc[-2]
-                    change = current_price - prev_close
-                    percent_change = (change / prev_close) * 100 if prev_close != 0 else 0
-
-                    # Generate SVG chart data
-                    svg_chart_data, min_val, max_val = self._generate_svg_chart_data(hist_data)
-
-                    if ticker_symbol == "GC=F":
-                        gold_usd_price = current_price
-                        gold_svg_chart_data = svg_chart_data
-                        gold_min_val = min_val
-                        gold_max_val = max_val
-
-                    if ticker_symbol == "JPY=X":
-                        usdjpy_price = current_price
-
-                    category_data.append({
-                        "name": name,
-                        "ticker": ticker_symbol,
-                        "country_code": index_info["country_code"],
-                        "volatilityIndex": index_info.get("description", ""),
-                        "currentValue": f"{current_price:,.2f}",
-                        "changeValue": f"{abs(change):,.2f}",
-                        "percentage": f"{abs(percent_change):.2f}",
-                        "isPositive": bool(change >= 0),
-                        "chartData": svg_chart_data,
-                        "maxValue": f"{max_val:,.0f}",
-                        "minValue": f"{min_val:,.0f}"
-                    })
-                    time.sleep(0.5)
-
-                except Exception as e:
-                    logger.error(f"Failed to fetch data for {name} ({ticker_symbol}): {e}")
-                    category_data.append({
-                        "name": name,
-                        "ticker": ticker_symbol,
-                        "country_code": index_info["country_code"],
-                        "error": f"Failed to fetch data: {e}"
-                    })
-                    continue
-            world_data[category] = category_data
-
-        if gold_usd_price and usdjpy_price:
-            logger.info("Calculating Gold (JPY) price...")
-            try:
-                gold_jpy_per_gram = (gold_usd_price * usdjpy_price) / 31.1035
-
-                # Use historical data of components to estimate previous price
-                gold_hist = yf.Ticker("GC=F", session=self.yf_session).history(period="2d", interval="1d")['Close']
-                jpy_hist = yf.Ticker("JPY=X", session=self.yf_session).history(period="2d", interval="1d")['Close']
-
-                if len(gold_hist) > 1 and len(jpy_hist) > 1:
-                    prev_gold_usd = gold_hist.iloc[-2]
-                    prev_jpy_usd = jpy_hist.iloc[-2]
-                    prev_gold_jpy_per_gram = (prev_gold_usd * prev_jpy_usd) / 31.1035
-
-                    change = gold_jpy_per_gram - prev_gold_jpy_per_gram
-                    percent_change = (change / prev_gold_jpy_per_gram) * 100 if prev_gold_jpy_per_gram != 0 else 0
-
-                    world_data["コモディティ"].insert(1, {
-                        "name": "ゴールド(円)",
-                        "ticker": "GOLD-JPY",
-                        "country_code": "CM",
-                        "volatilityIndex": "金 (円換算)",
-                        "currentValue": f"{gold_jpy_per_gram:,.0f}",
-                        "changeValue": f"{abs(change):,.0f}",
-                        "percentage": f"{abs(percent_change):.2f}",
-                        "isPositive": bool(change >= 0),
-                        "chartData": gold_svg_chart_data,
-                        "maxValue": f"{gold_max_val * usdjpy_price / 31.1035:,.0f}",
-                        "minValue": f"{gold_min_val * usdjpy_price / 31.1035:,.0f}"
-                    })
-                else:
-                    logger.warning("Not enough historical data to calculate Gold (JPY) change.")
-            except Exception as e:
-                logger.error(f"Failed to calculate Gold (JPY) price: {e}")
-
-        self.data['world'] = world_data
-        logger.info(f"Fetched data for world indices.")
-
     # --- Main Execution Methods ---
     def fetch_all_data(self):
         os.makedirs(DATA_DIR, exist_ok=True)
@@ -1696,8 +1477,7 @@ class MarketDataFetcher:
             self.fetch_fear_greed_index,
             self.fetch_calendar_data,  # Changed from fetch_economic_indicators
             self.fetch_yahoo_finance_news,
-            self.fetch_heatmap_data,
-            self.fetch_world_indices_data
+            self.fetch_heatmap_data
         ]
 
         for task in fetch_tasks:
